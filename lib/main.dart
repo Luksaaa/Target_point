@@ -13,18 +13,28 @@ void main() {
   runApp(const TargetPointApp());
 }
 
-class TargetPointApp extends StatelessWidget {
+class TargetPointApp extends StatefulWidget {
   const TargetPointApp({super.key});
+
+  @override
+  State<TargetPointApp> createState() => _TargetPointAppState();
+}
+
+class _TargetPointAppState extends State<TargetPointApp> {
+  ThemeMode _themeMode = ThemeMode.system;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Target Point',
       debugShowCheckedModeBanner: false,
-      themeMode: ThemeMode.system,
+      themeMode: _themeMode,
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
-      home: const DartMatchScreen(),
+      home: DartMatchScreen(
+        themeMode: _themeMode,
+        onThemeModeChanged: (mode) => setState(() => _themeMode = mode),
+      ),
     );
   }
 
@@ -45,7 +55,14 @@ class TargetPointApp extends StatelessWidget {
 }
 
 class DartMatchScreen extends StatefulWidget {
-  const DartMatchScreen({super.key});
+  const DartMatchScreen({
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    super.key,
+  });
+
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
 
   @override
   State<DartMatchScreen> createState() => _DartMatchScreenState();
@@ -105,7 +122,13 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
 
   void _openAccountScreen() {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => AccountScreen(controller: _controller)),
+      MaterialPageRoute(
+        builder: (_) => AccountScreen(
+          controller: _controller,
+          themeMode: widget.themeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
+        ),
+      ),
     );
   }
 

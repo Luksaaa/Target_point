@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -19,6 +19,9 @@ class AuthResult {
 class AuthRepository {
   AuthRepository();
 
+  static const databaseUrl =
+      'https://targetpoint-c57ff-default-rtdb.europe-west1.firebasedatabase.app/';
+
   bool _firebaseReady = false;
   bool _googleReady = false;
 
@@ -29,6 +32,10 @@ class AuthRepository {
       if (Firebase.apps.isEmpty) {
         await Firebase.initializeApp();
       }
+      FirebaseDatabase.instanceFor(
+        app: Firebase.app(),
+        databaseURL: databaseUrl,
+      );
       _firebaseReady = true;
     } catch (error) {
       debugPrint('Firebase is not configured yet: $error');
@@ -105,18 +112,9 @@ class AuthRepository {
       return;
     }
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(group.ownerUserId)
-        .collection('playerGroups')
-        .doc(group.id)
-        .set({
-          'name': group.name,
-          'playerNames': group.playerNames,
-          'ownerUserId': group.ownerUserId,
-          'isShared': group.isShared,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+    await _db
+        .child('users/${group.ownerUserId}/playerGroups/${group.id}')
+        .set(_groupPayload(group));
   }
 
   Future<void> sharePlayerGroup(PlayerGroupPreset group) async {
@@ -124,16 +122,10 @@ class AuthRepository {
       return;
     }
 
-    await FirebaseFirestore.instance
-        .collection('sharedPlayerGroups')
-        .doc(group.id)
-        .set({
-          'name': group.name,
-          'playerNames': group.playerNames,
-          'ownerUserId': group.ownerUserId,
-          'isShared': true,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+    await _db.child('sharedPlayerGroups/${group.id}').set({
+      ..._groupPayload(group.copyWith(isShared: true)),
+      'sharedAt': ServerValue.timestamp,
+    });
   }
 
   Future<void> followUser({
@@ -144,16 +136,11 @@ class AuthRepository {
       return;
     }
 
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(ownerUserId)
-        .collection('following')
-        .doc(followedUser.id)
-        .set({
-          'displayName': followedUser.displayName,
-          'handle': followedUser.handle,
-          'followedAt': FieldValue.serverTimestamp(),
-        });
+    await _db.child('users/$ownerUserId/following/${followedUser.id}').set({
+      'displayName': followedUser.displayName,
+      'handle': followedUser.handle,
+      'followedAt': ServerValue.timestamp,
+    });
   }
 
   Future<void> _saveUserProfile(UserSession session) async {
@@ -161,10 +148,26 @@ class AuthRepository {
       return;
     }
 
-    await FirebaseFirestore.instance.collection('users').doc(session.id).set({
+    await _db.child('users/${session.id}/profile').update({
       'displayName': session.displayName,
       'email': session.email,
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+      'updatedAt': ServerValue.timestamp,
+    });
+  }
+
+  DatabaseReference get _db => FirebaseDatabase.instanceFor(
+    app: Firebase.app(),
+    databaseURL: databaseUrl,
+  ).ref();
+
+  Map<String, Object?> _groupPayload(PlayerGroupPreset group) {
+    return {
+      'id': group.id,
+      'name': group.name,
+      'playerNames': group.playerNames,
+      'ownerUserId': group.ownerUserId,
+      'isShared': group.isShared,
+      'updatedAt': ServerValue.timestamp,
+    };
   }
 }

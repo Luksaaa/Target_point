@@ -27,7 +27,7 @@ The app is currently split across:
 - `lib/widgets`
 - `test/widget_test.dart`
 
-State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebase packages are installed, but a concrete Firebase project still needs platform config files/options before Google login and Firestore sync can work in a real environment.
+State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebase packages are installed, but a concrete Firebase project still needs platform config files/options before Google login and Realtime Database sync can work in a real environment.
 
 ## Current Features
 
@@ -46,6 +46,7 @@ State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebas
 - Player average per turn.
 - Responsive mobile/desktop layout.
 - System light/dark mode.
+- Manual theme selection: `System`, `Light`, `Dark`.
 - App icons updated across Android, iOS, macOS, web, and Windows.
 - User/guest profile separate from match players.
 - Player group presets.
@@ -60,12 +61,12 @@ State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebas
 Root widget. Defines:
 
 - `MaterialApp`
-- `themeMode: ThemeMode.system`
+- selected `ThemeMode`
 - light theme
 - dark theme
 - home screen: `DartMatchScreen`
 
-Do not replace `ThemeMode.system` unless the user asks for manual theme switching.
+Preserve all three theme choices: `ThemeMode.system`, `ThemeMode.light`, and `ThemeMode.dark`.
 
 ### `AuthRepository`
 
@@ -76,8 +77,8 @@ Responsibilities:
 - Initialize Firebase if platform config exists.
 - Initialize Google Sign-In.
 - Perform Google login through Firebase Auth.
-- Save user profile documents.
-- Save player groups under user documents.
+- Save user profiles to Firebase Realtime Database.
+- Save player groups under user nodes.
 - Save shared player groups.
 - Save following relationships.
 
@@ -364,14 +365,14 @@ flutter test
 
 - Firebase config is not committed yet.
 - Google login needs Firebase platform setup to work on devices.
-- Firestore save/share/follow methods are scaffolded but do not load remote data yet.
+- Realtime Database save/share/follow methods are scaffolded but do not load remote data yet.
 - Guest data is still session-local.
 - Email/password authentication is not implemented yet.
 
 ## Preferred Next Implementation Order
 
 1. Add Firebase platform configuration files/options.
-2. Add Firestore loading for user profile, player groups, and following.
+2. Add Realtime Database loading for user profile, player groups, and following.
 3. Add local persistent storage for guest mode.
 4. Add email/password authentication.
 5. Add match history sync.

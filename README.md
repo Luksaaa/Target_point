@@ -19,6 +19,7 @@ Target Point je Flutter aplikacija za pracenje pikado meceva. Glavni ekran koris
 - Dijeljenje player grupa s pratiteljima.
 - Following lista korisnika.
 - Google login preko Firebase Auth kada je Firebase konfiguriran.
+- Rucni izbor teme: `System`, `Light`, `Dark`.
 - Responsive mobile i desktop layout.
 - Automatski light/dark mode prema postavkama sustava.
 - Platformske ikone za Android, iOS, macOS, web i Windows.
@@ -70,6 +71,6 @@ flutter test
 
 - Spojiti Firebase config datoteke za Android, iOS, web i ostale platforme.
 - Dodati lokalno trajno spremanje za guest mode.
-- Dodati ucitavanje player grupa i following liste iz Firestorea.
+- Dodati ucitavanje player grupa i following liste iz Realtime Databasea.
 - Dodati email/password login.
 - Dodati detaljniju statistiku i cloud sync povijesti meceva.
