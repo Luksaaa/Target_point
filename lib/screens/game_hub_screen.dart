@@ -7,12 +7,21 @@ import 'coming_soon_game_screen.dart';
 class GameHubScreen extends StatelessWidget {
   const GameHubScreen({
     required this.themeMode,
+    required this.customActivities,
+    required this.onCreateActivity,
     required this.onThemeModeChanged,
     required this.onOpenDarts,
     super.key,
   });
 
   final ThemeMode themeMode;
+  final List<SportGame> customActivities;
+  final void Function({
+    required String name,
+    required String description,
+    required List<String> participants,
+  })
+  onCreateActivity;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<BuildContext> onOpenDarts;
 
@@ -20,6 +29,7 @@ class GameHubScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     final theme = Theme.of(context);
+    final games = [...customActivities, ...sportGames];
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -42,6 +52,8 @@ class GameHubScreen extends StatelessWidget {
                     child: _HubHeader(
                       themeMode: themeMode,
                       onThemeModeChanged: onThemeModeChanged,
+                      onCreateActivity: () =>
+                          _showCreateActivityDialog(context, onCreateActivity),
                     ),
                   ),
                 ),
@@ -54,7 +66,7 @@ class GameHubScreen extends StatelessWidget {
                   ),
                   sliver: SliverGrid(
                     delegate: SliverChildBuilderDelegate((context, index) {
-                      final game = sportGames[index];
+                      final game = games[index];
                       return _GameCard(
                         game: game,
                         onTap: () {
@@ -70,7 +82,7 @@ class GameHubScreen extends StatelessWidget {
                           );
                         },
                       );
-                    }, childCount: sportGames.length),
+                    }, childCount: games.length),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       mainAxisSpacing: 12,
@@ -88,7 +100,7 @@ class GameHubScreen extends StatelessWidget {
                   ),
                   sliver: SliverToBoxAdapter(
                     child: Text(
-                      'Darts is ready now. Other games are prepared as modules so they can get their own scoring rules later.',
+                      'Darts is ready now. Presets and custom activities are prepared as modules so each one can get its own scoring rules later.',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: palette.textMuted,
                         fontWeight: FontWeight.w700,
@@ -103,13 +115,99 @@ class GameHubScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _showCreateActivityDialog(
+    BuildContext context,
+    void Function({
+      required String name,
+      required String description,
+      required List<String> participants,
+    })
+    onCreateActivity,
+  ) async {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final participantsController = TextEditingController();
+    final palette = AppPalette.of(context);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: const Text('Create activity'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Activity name',
+                  hintText: 'Beer race',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descriptionController,
+                textInputAction: TextInputAction.next,
+                decoration: const InputDecoration(
+                  labelText: 'Rules or description',
+                  hintText: 'First person to finish wins',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: participantsController,
+                decoration: const InputDecoration(
+                  labelText: 'Participants',
+                  hintText: 'Marko, Luka, Borna',
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text('Cancel', style: TextStyle(color: palette.textMuted)),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(backgroundColor: palette.primary),
+            onPressed: () {
+              onCreateActivity(
+                name: nameController.text,
+                description: descriptionController.text,
+                participants: participantsController.text
+                    .split(',')
+                    .map((participant) => participant.trim())
+                    .where((participant) => participant.isNotEmpty)
+                    .toList(),
+              );
+              Navigator.of(dialogContext).pop();
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+
+    // The dialog route can still rebuild during its closing animation.
+    // Controllers are intentionally left alive for that short route lifetime.
+  }
 }
 
 class _HubHeader extends StatelessWidget {
-  const _HubHeader({required this.themeMode, required this.onThemeModeChanged});
+  const _HubHeader({
+    required this.themeMode,
+    required this.onThemeModeChanged,
+    required this.onCreateActivity,
+  });
 
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final VoidCallback onCreateActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +249,12 @@ class _HubHeader extends StatelessWidget {
             ],
           ),
         ),
+        IconButton.filledTonal(
+          tooltip: 'Create activity',
+          onPressed: onCreateActivity,
+          icon: const Icon(Icons.add),
+        ),
+        const SizedBox(width: 6),
         PopupMenuButton<ThemeMode>(
           tooltip: 'Theme',
           icon: Icon(Icons.brightness_6, color: palette.text),
@@ -206,7 +310,7 @@ class _GameCard extends StatelessWidget {
                     child: Icon(game.icon, color: game.color, size: 28),
                   ),
                   const Spacer(),
-                  _StatusBadge(isReady: isReady),
+                  _StatusBadge(isReady: isReady, isCustom: game.isCustom),
                 ],
               ),
               const SizedBox(height: 16),
@@ -241,6 +345,11 @@ class _GameCard extends StatelessWidget {
                 children: [
                   for (final mode in game.modes.take(3))
                     _ModeChip(label: mode, color: game.color),
+                  if (game.participants.length > 3)
+                    _ModeChip(
+                      label: '+${game.participants.length - 3}',
+                      color: game.color,
+                    ),
                 ],
               ),
             ],
@@ -252,9 +361,10 @@ class _GameCard extends StatelessWidget {
 }
 
 class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.isReady});
+  const _StatusBadge({required this.isReady, required this.isCustom});
 
   final bool isReady;
+  final bool isCustom;
 
   @override
   Widget build(BuildContext context) {
@@ -267,7 +377,11 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        isReady ? 'Ready' : 'Soon',
+        isCustom
+            ? 'Custom'
+            : isReady
+            ? 'Ready'
+            : 'Soon',
         style: TextStyle(
           color: isReady ? palette.primary : palette.textMuted,
           fontSize: 12,

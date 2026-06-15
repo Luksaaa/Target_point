@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:target_point/main.dart';
 import 'package:target_point/models/game_state_controller.dart';
+import 'package:target_point/models/sport_game.dart';
 import 'package:target_point/widgets/dartboard.dart';
 
 void main() {
@@ -43,6 +44,26 @@ void main() {
     expect(find.text('Tennis'), findsOneWidget);
     expect(find.text('Football'), findsOneWidget);
     expect(find.text('Billiards'), findsOneWidget);
+  });
+
+  testWidgets('creates a custom competitive activity', (tester) async {
+    await pumpApp(tester, openDarts: false);
+
+    await tester.tap(find.byTooltip('Create activity'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).at(0), 'Beer race');
+    await tester.enterText(
+      find.byType(TextField).at(1),
+      'First person to finish wins',
+    );
+    await tester.enterText(find.byType(TextField).at(2), 'Marko, Luka, Borna');
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beer race'), findsOneWidget);
+    expect(find.text('Custom'), findsOneWidget);
+    expect(find.text('Marko'), findsOneWidget);
   });
 
   testWidgets('records a dartboard hit in the current turn', (tester) async {
@@ -111,6 +132,15 @@ void main() {
     expect(controller.currentUser.displayName, 'Luka Guest');
     expect(controller.currentUser.initials, 'L');
     expect(controller.currentPlayer.name, 'Marko');
+  });
+
+  test('includes board games and party competitions as presets', () {
+    final gameNames = sportGames.map((game) => game.name).toSet();
+
+    expect(gameNames.contains('Chess'), isTrue);
+    expect(gameNames.contains('Catan'), isTrue);
+    expect(gameNames.contains('Monopoly'), isTrue);
+    expect(gameNames.contains('Beer Pong'), isTrue);
   });
 
   test('can create and select a player group preset', () {

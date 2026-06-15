@@ -32,7 +32,8 @@ State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebas
 ## Current Features
 
 - Clickable dartboard rendered with `CustomPainter`.
-- Game hub entry screen with Darts plus planned cards for table, racket, field, team and cue sports.
+- Game hub entry screen with Darts plus planned cards for sports, board games, card games, party games, and custom user-created competitions.
+- Users can create a custom activity with a name, description/rules, and participants. Custom activities are local session state for now.
 - Hit detection from tap coordinates.
 - X01 and Count up game modes.
 - Starting score choices: `301`, `501`, `701`.
@@ -369,7 +370,8 @@ flutter test
 - Realtime Database save/share/follow methods are scaffolded but do not load remote data yet.
 - Guest data is still session-local.
 - Email/password authentication is not implemented yet.
-- Every game except Darts currently has a planned-game screen only.
+- Every activity except Darts currently has a planned-game screen only.
+- Custom activities are not persisted to Firebase yet.
 
 ## Preferred Next Implementation Order
 
@@ -380,5 +382,6 @@ flutter test
 5. Add Firebase config for web/desktop if those platforms are supported.
 6. Expand sharing permissions.
 7. Implement scoring engines for the planned games in the game hub.
+8. Persist custom activities and participants to Firebase.
 
 Keep each change narrow and preserve working tests.

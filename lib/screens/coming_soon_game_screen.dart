@@ -77,6 +77,38 @@ class ComingSoonGameScreen extends StatelessWidget {
                     ),
                 ],
               ),
+              if (game.participants.isNotEmpty) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Participants',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: palette.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final participant in game.participants)
+                      Chip(
+                        avatar: CircleAvatar(
+                          backgroundColor: game.color,
+                          foregroundColor: Colors.white,
+                          child: Text(participant[0]),
+                        ),
+                        label: Text(participant),
+                        backgroundColor: palette.surface,
+                        side: BorderSide(color: palette.border),
+                        labelStyle: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
               const Spacer(),
               SizedBox(
                 width: double.infinity,

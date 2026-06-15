@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models/game_state_controller.dart';
+import 'models/sport_game.dart';
 import 'theme/app_palette.dart';
 import 'widgets/search_dialog.dart';
 import 'screens/game_hub_screen.dart';
@@ -23,6 +24,7 @@ class TargetPointApp extends StatefulWidget {
 
 class _TargetPointAppState extends State<TargetPointApp> {
   ThemeMode _themeMode = ThemeMode.system;
+  final List<SportGame> _customActivities = [];
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +36,8 @@ class _TargetPointAppState extends State<TargetPointApp> {
       darkTheme: _buildTheme(Brightness.dark),
       home: GameHubScreen(
         themeMode: _themeMode,
+        customActivities: _customActivities,
+        onCreateActivity: _createCustomActivity,
         onThemeModeChanged: (mode) => setState(() => _themeMode = mode),
         onOpenDarts: (navigatorContext) {
           Navigator.of(navigatorContext).push(
@@ -49,6 +53,51 @@ class _TargetPointAppState extends State<TargetPointApp> {
         },
       ),
     );
+  }
+
+  void _createCustomActivity({
+    required String name,
+    required String description,
+    required List<String> participants,
+  }) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return;
+    }
+
+    final colors = [
+      const Color(0xFF7C4DFF),
+      const Color(0xFF00A6A6),
+      const Color(0xFFE65100),
+      const Color(0xFFAD1457),
+      const Color(0xFF546E7A),
+    ];
+    final cleanParticipants = participants
+        .map((participant) => participant.trim())
+        .where((participant) => participant.isNotEmpty)
+        .toSet()
+        .toList();
+
+    setState(() {
+      _customActivities.insert(
+        0,
+        SportGame(
+          id: 'custom-${DateTime.now().millisecondsSinceEpoch}',
+          name: trimmedName,
+          subtitle: description.trim().isEmpty
+              ? 'Custom competition with your own rules'
+              : description.trim(),
+          icon: Icons.emoji_events,
+          color: colors[_customActivities.length % colors.length],
+          status: SportGameStatus.planned,
+          modes: cleanParticipants.isEmpty
+              ? const ['Custom rules']
+              : cleanParticipants.take(3).toList(),
+          participants: cleanParticipants,
+          isCustom: true,
+        ),
+      );
+    });
   }
 
   ThemeData _buildTheme(Brightness brightness) {
