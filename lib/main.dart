@@ -45,29 +45,13 @@ class _TargetPointAppState extends State<TargetPointApp> {
       ],
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
-      home: GameHubScreen(
+      home: DartMatchScreen(
         themeMode: _themeMode,
         locale: _locale,
         customActivities: _customActivities,
         onCreateActivity: _createCustomActivity,
         onThemeModeChanged: (mode) => setState(() => _themeMode = mode),
         onLocaleChanged: (locale) => setState(() => _locale = locale),
-        onOpenDarts: (navigatorContext) {
-          Navigator.of(navigatorContext).push(
-            MaterialPageRoute(
-              builder: (_) => DartMatchScreen(
-                themeMode: _themeMode,
-                locale: _locale,
-                onThemeModeChanged: (mode) {
-                  setState(() => _themeMode = mode);
-                },
-                onLocaleChanged: (locale) {
-                  setState(() => _locale = locale);
-                },
-              ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -137,6 +121,8 @@ class DartMatchScreen extends StatefulWidget {
   const DartMatchScreen({
     required this.themeMode,
     required this.locale,
+    required this.customActivities,
+    required this.onCreateActivity,
     required this.onThemeModeChanged,
     required this.onLocaleChanged,
     super.key,
@@ -144,6 +130,13 @@ class DartMatchScreen extends StatefulWidget {
 
   final ThemeMode themeMode;
   final Locale? locale;
+  final List<SportGame> customActivities;
+  final void Function({
+    required String name,
+    required String description,
+    required List<String> participants,
+  })
+  onCreateActivity;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final ValueChanged<Locale?> onLocaleChanged;
 
@@ -224,6 +217,22 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
     );
   }
 
+  void _openActivitiesScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GameHubScreen(
+          themeMode: widget.themeMode,
+          locale: widget.locale,
+          customActivities: widget.customActivities,
+          onCreateActivity: widget.onCreateActivity,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          onLocaleChanged: widget.onLocaleChanged,
+          onOpenDarts: (context) => Navigator.of(context).pop(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildActiveScreen(bool isWide) {
     return switch (_controller.activeTabIndex) {
       0 => PlayScreen(controller: _controller, isWide: isWide),
@@ -295,6 +304,13 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                IconButton(
+                                  icon: const Icon(Icons.apps),
+                                  color: palette.primary,
+                                  tooltip: 'Activities',
+                                  onPressed: _openActivitiesScreen,
+                                ),
+                                const SizedBox(height: 8),
                                 IconButton(
                                   icon: const Icon(Icons.search),
                                   color: palette.primary,
@@ -433,6 +449,12 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
                       ],
                     ),
                     actions: [
+                      IconButton(
+                        icon: const Icon(Icons.apps),
+                        color: palette.text,
+                        tooltip: 'Activities',
+                        onPressed: _openActivitiesScreen,
+                      ),
                       IconButton(
                         icon: const Icon(Icons.search),
                         color: palette.text,

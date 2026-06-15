@@ -43,7 +43,6 @@ class GameHubScreen extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 820;
-            final crossAxisCount = isWide ? 2 : 1;
 
             return CustomScrollView(
               slivers: [
@@ -91,11 +90,11 @@ class GameHubScreen extends StatelessWidget {
                         },
                       );
                     }, childCount: games.length),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: isWide ? 260 : 190,
                       mainAxisSpacing: 12,
                       crossAxisSpacing: 12,
-                      mainAxisExtent: isWide ? 220 : 236,
+                      mainAxisExtent: 116,
                     ),
                   ),
                 ),
@@ -331,7 +330,7 @@ class _GameCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: isReady ? game.color : palette.border),
@@ -342,56 +341,43 @@ class _GameCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 46,
-                    height: 46,
+                    width: 34,
+                    height: 34,
                     decoration: BoxDecoration(
                       color: game.color.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(game.icon, color: game.color, size: 28),
+                    child: Icon(game.icon, color: game.color, size: 22),
                   ),
                   const Spacer(),
                   _StatusBadge(isReady: isReady, isCustom: game.isCustom),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Text(
                 l10n.gameName(game.id, game.name),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   color: palette.text,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Expanded(
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: Text(
-                    l10n.gameSubtitle(game.id, game.subtitle),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: palette.textMuted,
-                      fontWeight: FontWeight.w700,
-                      height: 1.25,
-                    ),
-                  ),
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final mode in game.modes.take(2))
+                      _ModeChip(label: mode, color: game.color),
+                    if (game.participants.length > 2)
+                      _ModeChip(
+                        label: '+${game.participants.length - 2}',
+                        color: game.color,
+                      ),
+                  ],
                 ),
-              ),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final mode in game.modes.take(3))
-                    _ModeChip(label: mode, color: game.color),
-                  if (game.participants.length > 3)
-                    _ModeChip(
-                      label: '+${game.participants.length - 3}',
-                      color: game.color,
-                    ),
-                ],
               ),
             ],
           ),
@@ -413,7 +399,7 @@ class _StatusBadge extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: isReady ? palette.primarySoft : palette.surfaceMuted,
         borderRadius: BorderRadius.circular(999),
@@ -426,7 +412,7 @@ class _StatusBadge extends StatelessWidget {
             : l10n.t('common.soon'),
         style: TextStyle(
           color: isReady ? palette.primary : palette.textMuted,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -445,7 +431,7 @@ class _ModeChip extends StatelessWidget {
     final palette = AppPalette.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(999),
@@ -453,9 +439,11 @@ class _ModeChip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: palette.text,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w800,
         ),
       ),

@@ -33,7 +33,8 @@ State is currently managed by `GameStateController`, a `ChangeNotifier`. Firebas
 ## Current Features
 
 - Clickable dartboard rendered with `CustomPainter`.
-- Game hub entry screen with Darts plus planned cards for sports, board games, card games, party games, and custom user-created competitions.
+- The app starts on the Darts match screen with Play, Scores, Settings, and History available immediately.
+- Activity hub opens from the Darts screen and contains planned cards for sports, board games, card games, party games, and custom user-created competitions.
 - Users can create a custom activity with a name, description/rules, and participants. Custom activities are local session state for now.
 - Localization is centralized in `lib/l10n/app_localizations.dart`.
 - Supported locales: English, Croatian, German, Spanish, French, Italian, Japanese, and Chinese/Mandarin.

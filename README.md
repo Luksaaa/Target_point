@@ -1,6 +1,6 @@
 # Target Point
 
-Target Point je Flutter aplikacija za pracenje pikado meceva. Glavni ekran koristi veliki klikabilni dartboard: korisnik odabere polje koje je pogodio, a aplikacija automatski izracuna rezultat i vodi trenutni turn.
+Target Point je Flutter aplikacija za pracenje pikado meceva. Pocetni ekran je pikado scorer s velikim klikabilnim dartboardom: korisnik odabere polje koje je pogodio, a aplikacija automatski izracuna rezultat i vodi trenutni turn.
 
 ## Trenutne funkcije
 
@@ -25,7 +25,7 @@ Target Point je Flutter aplikacija za pracenje pikado meceva. Glavni ekran koris
 - Responsive mobile i desktop layout.
 - Automatski light/dark mode prema postavkama sustava.
 - Platformske ikone za Android, iOS, macOS, web i Windows.
-- Pocetni izbor aktivnosti: sportovi, drustvene igre i party natjecanja kao Darts, Table Tennis, Tennis, Football, Billiards, Snooker, Bowling, Badminton, Squash, Basketball, Volleyball, Handball, Golf, Hockey, Baseball, Cricket, Rugby, Foosball, Chess, Catan, Monopoly, Risk, Uno, Poker, Blackjack, Scrabble, Yahtzee, Dominoes, Dixit, Ticket to Ride, Carcassonne, Clue, Trivia, Beer Pong, Padel i Pickleball.
+- Activity hub dostupan iz glavnog pikado ekrana: sportovi, drustvene igre i party natjecanja kao Darts, Table Tennis, Tennis, Football, Billiards, Snooker, Bowling, Badminton, Squash, Basketball, Volleyball, Handball, Golf, Hockey, Baseball, Cricket, Rugby, Foosball, Chess, Catan, Monopoly, Risk, Uno, Poker, Blackjack, Scrabble, Yahtzee, Dominoes, Dixit, Ticket to Ride, Carcassonne, Clue, Trivia, Beer Pong, Padel i Pickleball.
 - Korisnik moze napraviti custom aktivnost s vlastitim pravilima i sudionicima.
 
 ## Pokretanje
@@ -73,7 +73,7 @@ flutter test
 - Guest podaci se jos ne spremaju nakon zatvaranja aplikacije.
 - Player grupe i following imaju lokalni session fallback dok cloud nije spojen.
 - Email/password login jos nije implementiran.
-- Sve aktivnosti osim Darts su trenutno pripremljeni ekrani bez scoring logike.
+- Sve aktivnosti osim Darts su trenutno pripremljeni kao dodatni moduli bez scoring logike.
 - Custom aktivnosti se trenutno pamte samo u otvorenoj sesiji aplikacije.
 - Dio vrlo specificnih opisa planiranih igara jos koristi fallback tekst dok se ne uvede detaljna scoring logika za svaku igru.
 

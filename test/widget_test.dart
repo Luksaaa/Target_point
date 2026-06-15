@@ -12,7 +12,6 @@ void main() {
     WidgetTester tester, {
     Size size = const Size(1200, 800),
     Brightness? brightness,
-    bool openDarts = true,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -29,15 +28,23 @@ void main() {
 
     await tester.pumpWidget(const TargetPointApp());
     await tester.pumpAndSettle();
-
-    if (openDarts) {
-      await tester.tap(find.text('Darts'));
-      await tester.pumpAndSettle();
-    }
   }
 
-  testWidgets('renders the game hub before opening darts', (tester) async {
-    await pumpApp(tester, openDarts: false);
+  testWidgets('starts on darts with the main match tabs', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.byType(Dartboard), findsOneWidget);
+    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Scores'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
+    expect(find.text('History'), findsOneWidget);
+  });
+
+  testWidgets('opens the activity hub from the darts screen', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('Activities'));
+    await tester.pumpAndSettle();
 
     expect(find.text('Choose a game'), findsOneWidget);
     expect(find.text('Darts'), findsOneWidget);
@@ -48,7 +55,10 @@ void main() {
   });
 
   testWidgets('creates a custom competitive activity', (tester) async {
-    await pumpApp(tester, openDarts: false);
+    await pumpApp(tester);
+
+    await tester.tap(find.byTooltip('Activities'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byTooltip('Create activity'));
     await tester.pumpAndSettle();
