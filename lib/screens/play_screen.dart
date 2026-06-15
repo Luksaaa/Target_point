@@ -6,7 +6,7 @@ import '../theme/app_palette.dart';
 
 import '../widgets/dartboard.dart';
 
-class PlayScreen extends StatelessWidget {
+class PlayScreen extends StatefulWidget {
   const PlayScreen({
     required this.controller,
     required this.isWide,
@@ -15,6 +15,95 @@ class PlayScreen extends StatelessWidget {
 
   final GameStateController controller;
   final bool isWide;
+
+  @override
+  State<PlayScreen> createState() => _PlayScreenState();
+}
+
+class _PlayScreenState extends State<PlayScreen> {
+  GameStateController get controller => widget.controller;
+  bool get isWide => widget.isWide;
+
+  void _confirmSaveTurn(BuildContext context, AppPalette palette) {
+    final hits = controller.currentTurn;
+    if (hits.isEmpty || controller.matchFinished) return;
+
+    final turnTotal = hits.fold(0, (sum, h) => sum + h.score);
+    final hitsText = hits.map((h) => h.label).join('  ·  ');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: palette.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: palette.primary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              'Save turn?',
+              style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              hitsText,
+              style: TextStyle(
+                color: palette.textMuted,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              decoration: BoxDecoration(
+                color: palette.primarySoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Total: $turnTotal pts',
+                style: TextStyle(
+                  color: palette.primary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              controller.undoLastHit();
+            },
+            child: Text(
+              'Redo Last Dart',
+              style: TextStyle(color: palette.textMuted, fontWeight: FontWeight.bold),
+            ),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: palette.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              controller.commitTurn();
+            },
+            icon: const Icon(Icons.check, size: 16),
+            label: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +309,7 @@ class PlayScreen extends StatelessWidget {
             Expanded(
               child: _ActionButton(
                 onPressed: hits.isNotEmpty && !controller.matchFinished
-                    ? controller.commitTurn
+                    ? () => _confirmSaveTurn(context, palette)
                     : null,
                 icon: Icons.check_circle_outline,
                 label: 'Save turn',

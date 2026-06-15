@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'models/game_state_controller.dart';
 import 'theme/app_palette.dart';
-import 'widgets/profile_dialog.dart';
 import 'widgets/search_dialog.dart';
 import 'screens/play_screen.dart';
 import 'screens/scoreboard_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/account_screen.dart';
 
 void main() {
   runApp(const TargetPointApp());
@@ -101,18 +101,12 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
     }
   }
 
-  void _showProfileDialog() {
-    final curPlayer = _controller.currentPlayer;
-    final pIdx = _controller.profiles.indexWhere((p) => p.name == curPlayer.name);
-    if (pIdx != -1) {
-      showDialog(
-        context: context,
-        builder: (context) => ProfileDialog(
-          profile: _controller.profiles[pIdx],
-          controller: _controller,
-        ),
-      );
-    }
+  void _openAccountScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AccountScreen(controller: _controller),
+      ),
+    );
   }
 
   void _showSearchDialog() {
@@ -202,16 +196,16 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
                                 ),
                                 const SizedBox(height: 12),
                                 Tooltip(
-                                  message: 'Current Player Profile',
+                                  message: 'Account & Settings',
                                   child: InkWell(
-                                    onTap: _showProfileDialog,
+                                    onTap: _openAccountScreen,
                                     customBorder: const CircleBorder(),
                                     child: Container(
                                       width: 38,
                                       height: 38,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        border: Border.all(color: palette.border, width: 2),
+                                        border: Border.all(color: palette.primary, width: 2),
                                         color: Color(_controller.currentPlayer.avatarColorValue),
                                       ),
                                       child: Center(
@@ -313,23 +307,26 @@ class _DartMatchScreenState extends State<DartMatchScreen> {
                         onPressed: _handleNewMatch,
                       ),
                       const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: _showProfileDialog,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: palette.border, width: 2),
-                            color: Color(_controller.currentPlayer.avatarColorValue),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _controller.currentPlayer.name.substring(0, 1).toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
+                      Tooltip(
+                        message: 'Account & Settings',
+                        child: GestureDetector(
+                          onTap: _openAccountScreen,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: palette.primary, width: 2.5),
+                              color: Color(_controller.currentPlayer.avatarColorValue),
+                            ),
+                            child: Center(
+                              child: Text(
+                                _controller.currentPlayer.name.substring(0, 1).toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ),

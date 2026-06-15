@@ -195,12 +195,7 @@ class GameStateController extends ChangeNotifier {
 
     _currentTurn.add(hit);
     _matchMessage = null;
-    
-    if (_currentTurn.length == 3) {
-      commitTurn();
-    } else {
-      notifyListeners();
-    }
+    notifyListeners();
   }
 
   void undoLastHit() {
