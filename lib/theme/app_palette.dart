@@ -32,32 +32,32 @@ class AppPalette {
 
     if (isDark) {
       return const AppPalette(
-        background: Color(0xFF121212),
-        surface: Color(0xFF1E1E1E),
-        surfaceMuted: Color(0xFF2C2C2C),
-        primary: Color(0xFF2196F3),
-        primarySoft: Color(0xFF174A78),
-        accent: Color(0xFFFF9800),
-        text: Color(0xFFFFFFFF),
-        textMuted: Color(0xFFB3B3B3),
-        border: Color(0xFF333333),
+        background: Color(0xFF0F1115),
+        surface: Color(0xFF171A20),
+        surfaceMuted: Color(0xFF20242C),
+        primary: Color(0xFF4F8EF7),
+        primarySoft: Color(0xFF1D2E47),
+        accent: Color(0xFFE3A72F),
+        text: Color(0xFFF4F6F8),
+        textMuted: Color(0xFF9AA4B2),
+        border: Color(0xFF2B313A),
         dartboardDark: Color(0xFF222222),
-        dartboardLight: Color(0xFFF5F5DC),
+        dartboardLight: Color(0xFFF2E8CF),
       );
     }
 
     return const AppPalette(
-      background: Color(0xFFF5F5F5),
+      background: Color(0xFFF6F7F9),
       surface: Color(0xFFFFFFFF),
-      surfaceMuted: Color(0xFFEEEEEE),
-      primary: Color(0xFF1976D2),
-      primarySoft: Color(0xFFBBDEFB),
-      accent: Color(0xFFFF9800),
-      text: Color(0xFF212121),
-      textMuted: Color(0xFF757575),
-      border: Color(0xFFE0E0E0),
+      surfaceMuted: Color(0xFFEDEFF3),
+      primary: Color(0xFF1D5FAD),
+      primarySoft: Color(0xFFDCE8F7),
+      accent: Color(0xFFB7791F),
+      text: Color(0xFF18202A),
+      textMuted: Color(0xFF687386),
+      border: Color(0xFFD8DEE7),
       dartboardDark: Color(0xFF222222),
-      dartboardLight: Color(0xFFF5F5DC),
+      dartboardLight: Color(0xFFF2E8CF),
     );
   }
 }

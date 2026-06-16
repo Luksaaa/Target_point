@@ -54,15 +54,86 @@ class _TargetPointAppState extends State<TargetPointApp> {
 
   ThemeData _buildTheme(Brightness brightness) {
     final isDark = brightness == Brightness.dark;
+    final palette = isDark
+        ? const AppPalette(
+            background: Color(0xFF0F1115),
+            surface: Color(0xFF171A20),
+            surfaceMuted: Color(0xFF20242C),
+            primary: Color(0xFF4F8EF7),
+            primarySoft: Color(0xFF1D2E47),
+            accent: Color(0xFFE3A72F),
+            text: Color(0xFFF4F6F8),
+            textMuted: Color(0xFF9AA4B2),
+            border: Color(0xFF2B313A),
+            dartboardDark: Color(0xFF222222),
+            dartboardLight: Color(0xFFF2E8CF),
+          )
+        : const AppPalette(
+            background: Color(0xFFF6F7F9),
+            surface: Color(0xFFFFFFFF),
+            surfaceMuted: Color(0xFFEDEFF3),
+            primary: Color(0xFF1D5FAD),
+            primarySoft: Color(0xFFDCE8F7),
+            accent: Color(0xFFB7791F),
+            text: Color(0xFF18202A),
+            textMuted: Color(0xFF687386),
+            border: Color(0xFFD8DEE7),
+            dartboardDark: Color(0xFF222222),
+            dartboardLight: Color(0xFFF2E8CF),
+          );
 
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F8B6B),
+        seedColor: palette.primary,
         brightness: brightness,
       ),
-      scaffoldBackgroundColor: isDark
-          ? const Color(0xFF0A0D0C)
-          : const Color(0xFFF7F9F8),
+      scaffoldBackgroundColor: palette.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: palette.surface,
+        foregroundColor: palette.text,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        color: palette.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: palette.border),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: palette.primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: palette.text,
+          side: BorderSide(color: palette.border),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: palette.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: palette.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: palette.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: palette.primary, width: 1.5),
+        ),
+      ),
       useMaterial3: true,
     );
   }
@@ -99,7 +170,9 @@ class _RootScreenState extends State<RootScreen> {
         SportGame(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           name: name,
-          subtitle: description.isNotEmpty ? description : 'Custom rules activity',
+          subtitle: description.isNotEmpty
+              ? description
+              : 'Custom rules activity',
           icon: Icons.sports_kabaddi,
           color: const Color(0xFF1A6EB4),
           modes: [description.isNotEmpty ? description : 'Custom Rules'],
@@ -111,30 +184,16 @@ class _RootScreenState extends State<RootScreen> {
     });
   }
 
-  void _openSport(BuildContext context, SportGame game) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SportMatchScreen(
-          game: game,
-          themeMode: widget.themeMode,
-          locale: widget.locale,
-          onThemeModeChanged: widget.onThemeModeChanged,
-          onLocaleChanged: widget.onLocaleChanged,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GameHubScreen(
-      themeMode: widget.themeMode,
-      locale: widget.locale,
+    return SportMatchScreen(
+      game: sportGames.first,
       customActivities: _customActivities,
       onCreateActivity: _handleCreateActivity,
+      themeMode: widget.themeMode,
+      locale: widget.locale,
       onThemeModeChanged: widget.onThemeModeChanged,
       onLocaleChanged: widget.onLocaleChanged,
-      onOpenSport: (game) => _openSport(context, game),
     );
   }
 }
@@ -142,6 +201,8 @@ class _RootScreenState extends State<RootScreen> {
 class SportMatchScreen extends StatefulWidget {
   const SportMatchScreen({
     required this.game,
+    required this.customActivities,
+    required this.onCreateActivity,
     required this.themeMode,
     required this.locale,
     required this.onThemeModeChanged,
@@ -150,6 +211,13 @@ class SportMatchScreen extends StatefulWidget {
   });
 
   final SportGame game;
+  final List<SportGame> customActivities;
+  final void Function({
+    required String name,
+    required String description,
+    required List<String> participants,
+  })
+  onCreateActivity;
   final ThemeMode themeMode;
   final Locale? locale;
   final ValueChanged<ThemeMode> onThemeModeChanged;
@@ -225,13 +293,51 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
     );
   }
 
+  void _openActivitiesScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GameHubScreen(
+          themeMode: widget.themeMode,
+          locale: widget.locale,
+          customActivities: widget.customActivities,
+          onCreateActivity: widget.onCreateActivity,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          onLocaleChanged: widget.onLocaleChanged,
+          onOpenSport: (game) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => SportMatchScreen(
+                  game: game,
+                  customActivities: widget.customActivities,
+                  onCreateActivity: widget.onCreateActivity,
+                  themeMode: widget.themeMode,
+                  locale: widget.locale,
+                  onThemeModeChanged: widget.onThemeModeChanged,
+                  onLocaleChanged: widget.onLocaleChanged,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildActiveScreen(bool isWide) {
     return switch (_controller.activeTabIndex) {
-      0 => PlayScreen(controller: _controller, isWide: isWide, game: widget.game),
+      0 => PlayScreen(
+        controller: _controller,
+        isWide: isWide,
+        game: widget.game,
+      ),
       1 => ScoreboardScreen(controller: _controller),
       2 => SettingsScreen(controller: _controller),
       3 => HistoryScreen(controller: _controller),
-      _ => PlayScreen(controller: _controller, isWide: isWide, game: widget.game),
+      _ => PlayScreen(
+        controller: _controller,
+        isWide: isWide,
+        game: widget.game,
+      ),
     };
   }
 
@@ -296,6 +402,13 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
+                                IconButton(
+                                  icon: const Icon(Icons.apps),
+                                  color: palette.primary,
+                                  tooltip: 'Activities',
+                                  onPressed: _openActivitiesScreen,
+                                ),
+                                const SizedBox(height: 8),
                                 IconButton(
                                   icon: const Icon(Icons.refresh),
                                   color: palette.primary,
@@ -363,7 +476,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                                 Icons.tune,
                                 color: palette.primary,
                               ),
-                              label: const Text('Setup'),
+                              label: const Text('Settings'),
                             ),
                             NavigationRailDestination(
                               icon: const Icon(Icons.history_outlined),
@@ -427,6 +540,12 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                       ],
                     ),
                     actions: [
+                      IconButton(
+                        icon: const Icon(Icons.apps),
+                        color: palette.text,
+                        tooltip: 'Activities',
+                        onPressed: _openActivitiesScreen,
+                      ),
                       IconButton(
                         icon: const Icon(Icons.refresh),
                         color: palette.text,
@@ -498,7 +617,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                       BottomNavigationBarItem(
                         icon: Icon(Icons.tune_outlined),
                         activeIcon: Icon(Icons.tune),
-                        label: 'Setup',
+                        label: 'Settings',
                       ),
                       BottomNavigationBarItem(
                         icon: Icon(Icons.history_outlined),

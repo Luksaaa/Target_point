@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/sport_game.dart';
 import '../theme/app_palette.dart';
-import 'coming_soon_game_screen.dart';
 
-class GameHubScreen extends StatelessWidget {
+class GameHubScreen extends StatefulWidget {
   const GameHubScreen({
     required this.themeMode,
     required this.locale,
@@ -31,11 +30,16 @@ class GameHubScreen extends StatelessWidget {
   final ValueChanged<SportGame> onOpenSport;
 
   @override
+  State<GameHubScreen> createState() => _GameHubScreenState();
+}
+
+class _GameHubScreenState extends State<GameHubScreen> {
+  @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final games = [...customActivities, ...sportGames];
+    final games = [...widget.customActivities, ...sportGames];
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -55,12 +59,12 @@ class GameHubScreen extends StatelessWidget {
                   ),
                   sliver: SliverToBoxAdapter(
                     child: _HubHeader(
-                      themeMode: themeMode,
-                      locale: locale,
-                      onThemeModeChanged: onThemeModeChanged,
-                      onLocaleChanged: onLocaleChanged,
+                      themeMode: widget.themeMode,
+                      locale: widget.locale,
+                      onThemeModeChanged: widget.onThemeModeChanged,
+                      onLocaleChanged: widget.onLocaleChanged,
                       onCreateActivity: () =>
-                          _showCreateActivityDialog(context, onCreateActivity),
+                          _showCreateActivityDialog(context),
                     ),
                   ),
                 ),
@@ -77,7 +81,7 @@ class GameHubScreen extends StatelessWidget {
                       return _GameCard(
                         game: game,
                         onTap: () {
-                          onOpenSport(game);
+                          widget.onOpenSport(game);
                         },
                       );
                     }, childCount: games.length),
@@ -114,15 +118,7 @@ class GameHubScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showCreateActivityDialog(
-    BuildContext context,
-    void Function({
-      required String name,
-      required String description,
-      required List<String> participants,
-    })
-    onCreateActivity,
-  ) async {
+  Future<void> _showCreateActivityDialog(BuildContext context) async {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     final participantsController = TextEditingController();
@@ -177,7 +173,7 @@ class GameHubScreen extends StatelessWidget {
           FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: palette.primary),
             onPressed: () {
-              onCreateActivity(
+              widget.onCreateActivity(
                 name: nameController.text,
                 description: descriptionController.text,
                 participants: participantsController.text
@@ -186,6 +182,9 @@ class GameHubScreen extends StatelessWidget {
                     .where((participant) => participant.isNotEmpty)
                     .toList(),
               );
+              if (mounted) {
+                setState(() {});
+              }
               Navigator.of(dialogContext).pop();
             },
             icon: const Icon(Icons.add),
@@ -360,8 +359,12 @@ class _GameCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    for (final mode in game.modes.take(2))
-                      _ModeChip(label: mode, color: game.color),
+                    for (final label
+                        in (game.isCustom && game.participants.isNotEmpty
+                                ? game.participants
+                                : game.modes)
+                            .take(2))
+                      _ModeChip(label: label, color: game.color),
                     if (game.participants.length > 2)
                       _ModeChip(
                         label: '+${game.participants.length - 2}',

@@ -41,8 +41,11 @@ class GameStateController extends ChangeNotifier {
   GameStateController() {
     _initializeServices();
 
-    // Start with empty profiles and match
-    _resetMatch();
+    _profiles.addAll([
+      PlayerProfile(name: 'Marko', avatarColorValue: 0xFF0F8B6B),
+      PlayerProfile(name: 'Luka', avatarColorValue: 0xFFC7352F),
+      PlayerProfile(name: 'Borna', avatarColorValue: 0xFFF6D77B),
+    ]);
 
     // Setup initial match
     _resetMatch();
@@ -175,6 +178,7 @@ class GameStateController extends ChangeNotifier {
     if (result.isSuccess) {
       _currentUser = result.session!;
       _accountMessage = 'Signed in as ${_currentUser.displayName}.';
+      await _activateRealtimeMatchForCurrentUser();
     } else {
       _accountMessage = result.errorMessage;
     }
@@ -211,6 +215,26 @@ class GameStateController extends ChangeNotifier {
         ? 'Guest profile updated locally.'
         : 'Profile updated for this session.';
     notifyListeners();
+  }
+
+  Future<void> _activateRealtimeMatchForCurrentUser() async {
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      return;
+    }
+
+    final matchId = 'active-${_currentUser.id}';
+    _liveMatchId = matchId;
+    _isLiveHost = true;
+    _liveHostUserId = _currentUser.id;
+    _liveMatchMessage = 'Realtime sync is active.';
+
+    final payload = await _authRepository.fetchDartMatch(matchId);
+    _subscribeToLiveMatch(matchId);
+    if (payload == null) {
+      await _syncLiveMatch();
+      return;
+    }
+    _applyLivePayload(payload);
   }
 
   Future<void> createLiveMatch() async {
@@ -403,8 +427,6 @@ class GameStateController extends ChangeNotifier {
         : 'Following ${followedUser.displayName}.';
     notifyListeners();
   }
-
-
 
   List<MatchHistoryEntry> get filteredHistory {
     if (_searchQuery.isEmpty) return _matchHistory;

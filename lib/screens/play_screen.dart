@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
+import '../models/game_state_controller.dart';
 import '../models/sport_game.dart';
 import '../theme/app_palette.dart';
-
 import '../widgets/dartboard.dart';
 
 class PlayScreen extends StatefulWidget {
@@ -25,59 +24,47 @@ class PlayScreen extends StatefulWidget {
 
 class _PlayScreenState extends State<PlayScreen> {
   GameStateController get controller => widget.controller;
-  bool get isWide => widget.isWide;
 
   void _confirmSaveTurn(BuildContext context, AppPalette palette) {
     final hits = controller.currentTurn;
     if (hits.isEmpty || controller.matchFinished) return;
 
-    final turnTotal = hits.fold(0, (sum, h) => sum + h.score);
-    final hitsText = hits.map((h) => h.label).join('  ·  ');
+    final turnTotal = hits.fold(0, (sum, hit) => sum + hit.score);
+    final hitsText = hits.map((hit) => hit.label).join(' / ');
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         backgroundColor: palette.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: palette.primary, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              'Save turn?',
-              style: TextStyle(
-                color: palette.text,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: palette.border),
         ),
+        title: const Text('Save turn?'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               hitsText,
               style: TextStyle(
                 color: palette.textMuted,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: palette.primarySoft,
-                borderRadius: BorderRadius.circular(10),
+                color: palette.surfaceMuted,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border),
               ),
               child: Text(
-                'Total: $turnTotal pts',
+                'Total: $turnTotal',
                 style: TextStyle(
-                  color: palette.primary,
+                  color: palette.text,
                   fontWeight: FontWeight.w900,
-                  fontSize: 16,
                 ),
               ),
             ),
@@ -86,33 +73,18 @@ class _PlayScreenState extends State<PlayScreen> {
         actions: [
           TextButton(
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
               controller.undoLastHit();
             },
-            child: Text(
-              'Redo Last Dart',
-              style: TextStyle(
-                color: palette.textMuted,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('Redo Last Dart'),
           ),
           FilledButton.icon(
-            style: FilledButton.styleFrom(
-              backgroundColor: palette.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
             onPressed: () {
-              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
               controller.commitTurn();
             },
-            icon: const Icon(Icons.check, size: 16),
-            label: const Text(
-              'Save',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('Save'),
           ),
         ],
       ),
@@ -123,180 +95,28 @@ class _PlayScreenState extends State<PlayScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
-
-    final player = controller.currentPlayer;
     final hits = controller.currentTurn;
-    final turnTotal = hits.fold(0, (total, hit) => total + hit.score);
-    final message = controller.matchMessage;
-
-    final chips = List.generate(3, (index) {
-      final hit = index < hits.length ? hits[index] : null;
-      final isActive = index == hits.length && !controller.matchFinished;
-
-      return Expanded(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: hit == null
-                ? (isActive
-                      ? palette.primarySoft.withValues(alpha: 0.5)
-                      : palette.surface.withValues(alpha: 0.15))
-                : palette.primarySoft,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isActive
-                  ? palette.accent
-                  : (hit != null
-                        ? palette.primary
-                        : palette.border.withValues(alpha: 0.3)),
-              width: isActive ? 2 : 1,
-            ),
-          ),
-          child: Text(
-            hit?.label ?? 'Dart ${index + 1}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: hit == null
-                  ? (isActive
-                        ? palette.accent
-                        : palette.text.withValues(alpha: 0.4))
-                  : palette.primary,
-            ),
-          ),
-        ),
-      );
-    });
-
-    final currentTurnHeader = Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.background,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: palette.primary.withValues(alpha: 0.25),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Color(player.avatarColorValue),
-                foregroundColor: Colors.white,
-                radius: 20,
-                child: Text(
-                  player.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      player.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      'Avg: ${player.average.toStringAsFixed(1)}',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${player.remaining}',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  color: palette.accent,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children:
-                chips
-                    .expand((chip) => [chip, const SizedBox(width: 8)])
-                    .toList()
-                  ..removeLast(),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text(
-                'Turn total: $turnTotal',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              if (message != null) ...[
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    message,
-                    textAlign: TextAlign.end,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: palette.accent,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
 
     final dartboardPanel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        currentTurnHeader,
-        const SizedBox(height: 16),
+        _CurrentTurnHeader(controller: controller, palette: palette),
+        const SizedBox(height: 14),
         Expanded(
           child: Center(
-          child: widget.game.id == 'darts'
-              ? Center(
-                  child: AspectRatio(
+            child: widget.game.id == 'darts'
+                ? AspectRatio(
                     aspectRatio: 1,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.15),
-                            blurRadius: 15,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: Dartboard(
-                        enabled: !controller.matchFinished,
-                        onHit: controller.handleHit,
-                        currentTurn: hits,
-                      ),
+                    child: Dartboard(
+                      enabled: !controller.matchFinished,
+                      onHit: controller.handleHit,
+                      currentTurn: hits,
                     ),
-                  ),
-                )
-              : _buildGenericSportUi(theme, palette),
+                  )
+                : _GenericSportPanel(game: widget.game, palette: palette),
+          ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
@@ -306,8 +126,6 @@ class _PlayScreenState extends State<PlayScreen> {
                     : controller.undoLastHit,
                 icon: Icons.undo,
                 label: 'Undo',
-                palette: palette,
-                isSecondary: true,
               ),
             ),
             const SizedBox(width: 10),
@@ -316,8 +134,6 @@ class _PlayScreenState extends State<PlayScreen> {
                 onPressed: controller.matchFinished ? null : controller.addMiss,
                 icon: Icons.radio_button_unchecked,
                 label: 'Miss',
-                palette: palette,
-                isSecondary: true,
               ),
             ),
             const SizedBox(width: 10),
@@ -326,10 +142,9 @@ class _PlayScreenState extends State<PlayScreen> {
                 onPressed: hits.isNotEmpty && !controller.matchFinished
                     ? () => _confirmSaveTurn(context, palette)
                     : null,
-                icon: Icons.check_circle_outline,
-                label: 'Save turn',
-                palette: palette,
-                isSecondary: false,
+                icon: Icons.check,
+                label: 'Save',
+                filled: true,
               ),
             ),
           ],
@@ -337,97 +152,332 @@ class _PlayScreenState extends State<PlayScreen> {
       ],
     );
 
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(flex: 6, child: dartboardPanel),
-          const SizedBox(width: 20),
-          Expanded(
-            flex: 4,
-            child: _QuickScoreboardPanel(
-              controller: controller,
-              palette: palette,
-            ),
-          ),
-        ],
-      );
+    if (!widget.isWide) {
+      return dartboardPanel;
     }
 
-    return dartboardPanel;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(flex: 6, child: dartboardPanel),
+        const SizedBox(width: 20),
+        Expanded(
+          flex: 4,
+          child: _QuickScoreboardPanel(
+            controller: controller,
+            palette: palette,
+            theme: theme,
+          ),
+        ),
+      ],
+    );
   }
+}
 
-  Widget _buildGenericSportUi(ThemeData theme, AppPalette palette) {
+class _CurrentTurnHeader extends StatelessWidget {
+  const _CurrentTurnHeader({required this.controller, required this.palette});
+
+  final GameStateController controller;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final player = controller.currentPlayer;
+    final hits = controller.currentTurn;
+    final turnTotal = hits.fold(0, (total, hit) => total + hit.score);
+
     return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Color(player.avatarColorValue),
+                foregroundColor: Colors.white,
+                radius: 20,
+                child: Text(
+                  player.name.substring(0, 1).toUpperCase(),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      player.name,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: palette.text,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '3-dart avg ${player.average.toStringAsFixed(1)}',
+                      style: TextStyle(
+                        color: palette.textMuted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${player.remaining}',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: palette.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: List.generate(3, (index) {
+              final hit = index < hits.length ? hits[index] : null;
+              final isActive =
+                  index == hits.length && !controller.matchFinished;
+              return Expanded(
+                child: Container(
+                  height: 44,
+                  margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: hit == null
+                        ? palette.surfaceMuted
+                        : palette.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isActive ? palette.primary : palette.border,
+                      width: isActive ? 2 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    hit?.label ?? 'Dart ${index + 1}',
+                    style: TextStyle(
+                      color: hit == null ? palette.textMuted : palette.primary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                'Turn total: $turnTotal',
+                style: TextStyle(
+                  color: palette.text,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (controller.matchMessage != null) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    controller.matchMessage!,
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      color: palette.accent,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenericSportPanel extends StatelessWidget {
+  const _GenericSportPanel({required this.game, required this.palette});
+
+  final SportGame game;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: palette.surface,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: palette.border),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(widget.game.icon, size: 64, color: widget.game.color),
-          const SizedBox(height: 16),
-                      CircleAvatar(
-                        backgroundColor: Color(player.avatarColorValue),
-                        foregroundColor: Colors.white,
-                        radius: 18,
-                        child: Text(
-                          player.name.substring(0, 1).toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              player.name,
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: palette.text,
-                              ),
-                            ),
-                            Text(
-                              'Avg: ${player.average.toStringAsFixed(1)} | Turns: ${player.turns.length}',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: palette.textMuted,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        '${player.remaining}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: isCurrent ? palette.primary : palette.text,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+          Icon(game.icon, size: 56, color: game.color),
+          const SizedBox(height: 14),
+          Text(
+            game.name,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w900,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Session Mode: ${controller.settings.mode == GameMode.x01 ? "${controller.settings.outRule.name.replaceAll('Out', '').toUpperCase()} OUT" : 'ACCUMULATIVE'}',
+            game.subtitle,
             textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: TextStyle(
               color: palette.textMuted,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
       ),
     );
+  }
+}
+
+class _QuickScoreboardPanel extends StatelessWidget {
+  const _QuickScoreboardPanel({
+    required this.controller,
+    required this.palette,
+    required this.theme,
+  });
+
+  final GameStateController controller;
+  final AppPalette palette;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Players',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: palette.text,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.separated(
+              itemCount: controller.players.length,
+              separatorBuilder: (context, index) =>
+                  Divider(color: palette.border),
+              itemBuilder: (context, index) {
+                final player = controller.players[index];
+                final isCurrent = index == controller.currentPlayerIndex;
+                return Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Color(player.avatarColorValue),
+                      foregroundColor: Colors.white,
+                      radius: 18,
+                      child: Text(
+                        player.name.substring(0, 1).toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            player.name,
+                            style: TextStyle(
+                              color: isCurrent ? palette.primary : palette.text,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            'Avg ${player.average.toStringAsFixed(1)} / Best ${player.highestTurnScore}',
+                            style: TextStyle(
+                              color: palette.textMuted,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${player.remaining}',
+                      style: TextStyle(
+                        color: isCurrent ? palette.primary : palette.text,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            controller.settings.mode == GameMode.x01
+                ? '${controller.settings.startingScore} / ${controller.settings.outRule.name.replaceAll('Out', '').toUpperCase()} OUT'
+                : 'COUNT UP',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: palette.textMuted,
+              fontWeight: FontWeight.w900,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+    this.filled = false,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String label;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return filled
+        ? FilledButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 18),
+            label: Text(label),
+          )
+        : OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon, size: 18),
+            label: Text(label),
+          );
   }
 }

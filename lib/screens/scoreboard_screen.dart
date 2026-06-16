@@ -36,33 +36,6 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
             ),
           ),
         ),
-        if (widget.controller.isLiveMatchActive) ...[
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: palette.primarySoft,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: palette.primary.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.cloud_done, color: palette.primary, size: 18),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Live match ${widget.controller.liveMatchId} is syncing scores.',
-                    style: TextStyle(
-                      color: palette.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         Expanded(
           child: players.isEmpty
               ? Center(
@@ -82,7 +55,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                       elevation: 0,
                       margin: const EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                         side: BorderSide(
                           color: player.isWinner
                               ? palette.primary

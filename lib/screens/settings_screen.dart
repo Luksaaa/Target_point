@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
@@ -18,7 +17,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _playerNameController = TextEditingController();
   final TextEditingController _groupNameController = TextEditingController();
-  final TextEditingController _liveCodeController = TextEditingController();
   int _newPlayerColor = 0xFF0F8B6B; // Default emerald
 
   final List<int> _colorOptions = const [
@@ -34,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _playerNameController.dispose();
     _groupNameController.dispose();
-    _liveCodeController.dispose();
     super.dispose();
   }
 
@@ -51,7 +48,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Dialog(
               backgroundColor: palette.surface,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
                 side: BorderSide(color: palette.border),
               ),
               child: Padding(
@@ -77,11 +74,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             color: palette.primary,
                             width: 2,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: palette.border),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       style: TextStyle(
@@ -234,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: palette.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: palette.border),
             ),
             child: Column(
@@ -343,7 +340,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   backgroundColor: palette.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 onPressed: _showAddPlayerDialog,
@@ -361,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
               color: palette.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: palette.border),
             ),
             child: SizedBox(
@@ -382,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     color: palette.surfaceMuted,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                       side: BorderSide(color: palette.border),
                     ),
                     child: ListTile(
