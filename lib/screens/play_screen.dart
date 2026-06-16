@@ -97,7 +97,87 @@ class _PlayScreenState extends State<PlayScreen> {
     final palette = AppPalette.of(context);
     final hits = controller.currentTurn;
 
-    final dartboardPanel = Column(
+    final actionRow = controller.isDartsGame
+        ? Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  onPressed: hits.isEmpty || controller.matchFinished
+                      ? null
+                      : controller.undoLastHit,
+                  icon: Icons.undo,
+                  label: 'Undo',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  onPressed: controller.matchFinished
+                      ? null
+                      : controller.addMiss,
+                  icon: Icons.radio_button_unchecked,
+                  label: 'Miss',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  onPressed: hits.isNotEmpty && !controller.matchFinished
+                      ? () => _confirmSaveTurn(context, palette)
+                      : null,
+                  icon: Icons.check,
+                  label: 'Save',
+                  filled: true,
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: _ActionButton(
+                  onPressed: controller.players.isEmpty
+                      ? null
+                      : () => controller.adjustCurrentPlayerScore(-1),
+                  icon: Icons.remove,
+                  label: '-1',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  onPressed: controller.players.isEmpty
+                      ? null
+                      : () => controller.adjustCurrentPlayerScore(1),
+                  icon: Icons.add,
+                  label: '+1',
+                  filled: true,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  onPressed: controller.players.isEmpty
+                      ? null
+                      : () => controller.adjustCurrentPlayerScore(5),
+                  icon: Icons.add_circle_outline,
+                  label: '+5',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionButton(
+                  onPressed: controller.players.length < 2
+                      ? null
+                      : controller.advanceGenericTurn,
+                  icon: Icons.skip_next,
+                  label: 'Next',
+                ),
+              ),
+            ],
+          );
+
+    final playPanel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _CurrentTurnHeader(controller: controller, palette: palette),
@@ -117,49 +197,18 @@ class _PlayScreenState extends State<PlayScreen> {
           ),
         ),
         const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionButton(
-                onPressed: hits.isEmpty || controller.matchFinished
-                    ? null
-                    : controller.undoLastHit,
-                icon: Icons.undo,
-                label: 'Undo',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ActionButton(
-                onPressed: controller.matchFinished ? null : controller.addMiss,
-                icon: Icons.radio_button_unchecked,
-                label: 'Miss',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ActionButton(
-                onPressed: hits.isNotEmpty && !controller.matchFinished
-                    ? () => _confirmSaveTurn(context, palette)
-                    : null,
-                icon: Icons.check,
-                label: 'Save',
-                filled: true,
-              ),
-            ),
-          ],
-        ),
+        actionRow,
       ],
     );
 
     if (!widget.isWide) {
-      return dartboardPanel;
+      return playPanel;
     }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(flex: 6, child: dartboardPanel),
+        Expanded(flex: 6, child: playPanel),
         const SizedBox(width: 20),
         Expanded(
           flex: 4,
@@ -186,6 +235,7 @@ class _CurrentTurnHeader extends StatelessWidget {
     final player = controller.currentPlayer;
     final hits = controller.currentTurn;
     final turnTotal = hits.fold(0, (total, hit) => total + hit.score);
+    final isDarts = controller.isDartsGame;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -221,7 +271,9 @@ class _CurrentTurnHeader extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '3-dart avg ${player.average.toStringAsFixed(1)}',
+                      isDarts
+                          ? '3-dart avg ${player.average.toStringAsFixed(1)}'
+                          : 'Score ${player.totalScored}',
                       style: TextStyle(
                         color: palette.textMuted,
                         fontWeight: FontWeight.w700,
@@ -241,42 +293,46 @@ class _CurrentTurnHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: List.generate(3, (index) {
-              final hit = index < hits.length ? hits[index] : null;
-              final isActive =
-                  index == hits.length && !controller.matchFinished;
-              return Expanded(
-                child: Container(
-                  height: 44,
-                  margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: hit == null
-                        ? palette.surfaceMuted
-                        : palette.primarySoft,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isActive ? palette.primary : palette.border,
-                      width: isActive ? 2 : 1,
+          if (isDarts) ...[
+            Row(
+              children: List.generate(3, (index) {
+                final hit = index < hits.length ? hits[index] : null;
+                final isActive =
+                    index == hits.length && !controller.matchFinished;
+                return Expanded(
+                  child: Container(
+                    height: 44,
+                    margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: hit == null
+                          ? palette.surfaceMuted
+                          : palette.primarySoft,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isActive ? palette.primary : palette.border,
+                        width: isActive ? 2 : 1,
+                      ),
+                    ),
+                    child: Text(
+                      hit?.label ?? 'Dart ${index + 1}',
+                      style: TextStyle(
+                        color: hit == null
+                            ? palette.textMuted
+                            : palette.primary,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    hit?.label ?? 'Dart ${index + 1}',
-                    style: TextStyle(
-                      color: hit == null ? palette.textMuted : palette.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-              );
-            }),
-          ),
-          const SizedBox(height: 10),
+                );
+              }),
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Text(
-                'Turn total: $turnTotal',
+                isDarts ? 'Turn total: $turnTotal' : 'Live leaderboard',
                 style: TextStyle(
                   color: palette.text,
                   fontWeight: FontWeight.w900,
@@ -412,7 +468,9 @@ class _QuickScoreboardPanel extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Avg ${player.average.toStringAsFixed(1)} / Best ${player.highestTurnScore}',
+                            controller.isDartsGame
+                                ? 'Avg ${player.average.toStringAsFixed(1)} / Best ${player.highestTurnScore}'
+                                : 'Score ${player.totalScored}',
                             style: TextStyle(
                               color: palette.textMuted,
                               fontWeight: FontWeight.w600,
@@ -437,7 +495,9 @@ class _QuickScoreboardPanel extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            controller.settings.mode == GameMode.x01
+            !controller.isDartsGame
+                ? 'LIVE ${controller.gameName.toUpperCase()} LEADERBOARD'
+                : controller.settings.mode == GameMode.x01
                 ? '${controller.settings.startingScore} / ${controller.settings.outRule.name.replaceAll('Out', '').toUpperCase()} OUT'
                 : 'COUNT UP',
             textAlign: TextAlign.center,

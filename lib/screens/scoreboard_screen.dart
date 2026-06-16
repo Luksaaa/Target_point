@@ -21,7 +21,14 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
-    final players = widget.controller.players;
+    final players = [...widget.controller.players]
+      ..sort((a, b) {
+        if (widget.controller.isDartsGame &&
+            widget.controller.settings.mode == GameMode.x01) {
+          return a.remaining.compareTo(b.remaining);
+        }
+        return b.totalScored.compareTo(a.totalScored);
+      });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -29,7 +36,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Text(
-            'Match Scoreboard',
+            widget.controller.isDartsGame ? 'Darts Leaderboard' : 'Leaderboard',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
               color: palette.text,
@@ -92,7 +99,11 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                               ],
                             ),
                             subtitle: Text(
-                              '3-Dart Avg: ${player.average.toStringAsFixed(1)} | Throws: ${player.totalThrows}',
+                              widget.controller.isDartsGame
+                                  ? '3-Dart Avg: ${player.average.toStringAsFixed(1)} | Throws: ${player.totalThrows}'
+                                  : player.isRegisteredUser
+                                  ? 'Registered user'
+                                  : 'Local player',
                               style: TextStyle(
                                 color: palette.textMuted,
                                 fontWeight: FontWeight.w600,
@@ -104,7 +115,9 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${player.remaining}',
+                                  widget.controller.isDartsGame
+                                      ? '${player.remaining}'
+                                      : '${player.totalScored}',
                                   style: theme.textTheme.titleLarge?.copyWith(
                                     fontWeight: FontWeight.w900,
                                     color: player.isWinner
@@ -116,7 +129,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                                   widget.controller.settings.mode ==
                                           GameMode.x01
                                       ? 'LEFT'
-                                      : 'SCORED',
+                                      : 'POINTS',
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
@@ -127,98 +140,98 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                             ),
                           ),
 
-                          // Stats strip
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            child: Container(
+                          if (widget.controller.isDartsGame)
+                            Padding(
                               padding: const EdgeInsets.symmetric(
-                                vertical: 8.0,
-                                horizontal: 12.0,
-                              ),
-                              decoration: BoxDecoration(
-                                color: palette.surfaceMuted,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: [
-                                  _MiniStat(
-                                    label: '180s',
-                                    value: '${player.count180s}',
-                                    palette: palette,
-                                  ),
-                                  _MiniStat(
-                                    label: '140+',
-                                    value: '${player.count140plus}',
-                                    palette: palette,
-                                  ),
-                                  _MiniStat(
-                                    label: '100+',
-                                    value: '${player.count100plus}',
-                                    palette: palette,
-                                  ),
-                                  _MiniStat(
-                                    label: 'Best Turn',
-                                    value: '${player.highestTurnScore}',
-                                    palette: palette,
-                                  ),
-                                  _MiniStat(
-                                    label: 'Best No.',
-                                    value: player.bestNumber == null
-                                        ? '-'
-                                        : '${player.bestNumber} (${player.bestNumberHits})',
-                                    palette: palette,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          // Expand/Collapse turns history
-                          InkWell(
-                            onTap: () {
-                              setState(() {
-                                _expandedPlayers[player.name] = !isExpanded;
-                              });
-                            },
-                            borderRadius: const BorderRadius.vertical(
-                              bottom: Radius.circular(16),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
                                 vertical: 8.0,
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    isExpanded
-                                        ? 'Hide Throw History'
-                                        : 'Show Throw History',
-                                    style: TextStyle(
-                                      color: palette.primary,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                  horizontal: 12.0,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: palette.surfaceMuted,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _MiniStat(
+                                      label: '180s',
+                                      value: '${player.count180s}',
+                                      palette: palette,
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    isExpanded
-                                        ? Icons.keyboard_arrow_up
-                                        : Icons.keyboard_arrow_down,
-                                    color: palette.primary,
-                                    size: 18,
-                                  ),
-                                ],
+                                    _MiniStat(
+                                      label: '140+',
+                                      value: '${player.count140plus}',
+                                      palette: palette,
+                                    ),
+                                    _MiniStat(
+                                      label: '100+',
+                                      value: '${player.count100plus}',
+                                      palette: palette,
+                                    ),
+                                    _MiniStat(
+                                      label: 'Best Turn',
+                                      value: '${player.highestTurnScore}',
+                                      palette: palette,
+                                    ),
+                                    _MiniStat(
+                                      label: 'Best No.',
+                                      value: player.bestNumber == null
+                                          ? '-'
+                                          : '${player.bestNumber} (${player.bestNumberHits})',
+                                      palette: palette,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
 
-                          if (isExpanded) ...[
+                          if (widget.controller.isDartsGame)
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _expandedPlayers[player.name] = !isExpanded;
+                                });
+                              },
+                              borderRadius: const BorderRadius.vertical(
+                                bottom: Radius.circular(8),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      isExpanded
+                                          ? 'Hide Throw History'
+                                          : 'Show Throw History',
+                                      style: TextStyle(
+                                        color: palette.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      isExpanded
+                                          ? Icons.keyboard_arrow_up
+                                          : Icons.keyboard_arrow_down,
+                                      color: palette.primary,
+                                      size: 18,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                          if (widget.controller.isDartsGame && isExpanded) ...[
                             const Divider(height: 1),
                             Container(
                               color: palette.surfaceMuted.withValues(

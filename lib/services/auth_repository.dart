@@ -122,26 +122,26 @@ class AuthRepository {
     });
   }
 
-  Future<void> saveDartMatch(
-    String matchId,
+  Future<void> saveGameSession(
+    String gameId,
     Map<String, Object?> payload,
   ) async {
     if (!_firebaseReady) {
       return;
     }
 
-    await _db.child('dartMatches/$matchId').update({
+    await _db.child('gameSessions/$gameId/active').update({
       ...payload,
       'updatedAt': ServerValue.timestamp,
     });
   }
 
-  Future<Map<String, dynamic>?> fetchDartMatch(String matchId) async {
+  Future<Map<String, dynamic>?> fetchGameSession(String gameId) async {
     if (!_firebaseReady) {
       return null;
     }
 
-    final snapshot = await _db.child('dartMatches/$matchId').get();
+    final snapshot = await _db.child('gameSessions/$gameId/active').get();
     final value = snapshot.value;
     if (value is Map) {
       return Map<String, dynamic>.from(value);
@@ -149,12 +149,12 @@ class AuthRepository {
     return null;
   }
 
-  Stream<Map<String, dynamic>?> watchDartMatch(String matchId) {
+  Stream<Map<String, dynamic>?> watchGameSession(String gameId) {
     if (!_firebaseReady) {
       return const Stream.empty();
     }
 
-    return _db.child('dartMatches/$matchId').onValue.map((event) {
+    return _db.child('gameSessions/$gameId/active').onValue.map((event) {
       final value = event.snapshot.value;
       if (value is Map) {
         return Map<String, dynamic>.from(value);

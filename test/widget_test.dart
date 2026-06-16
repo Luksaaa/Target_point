@@ -32,6 +32,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> addManualPlayer(WidgetTester tester, String name) async {
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Add Player'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, name);
+    await tester.tap(find.widgetWithText(FilledButton, 'Add Player').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Play'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('starts on darts with the main match tabs', (tester) async {
     await pumpApp(tester);
 
@@ -70,20 +82,21 @@ void main() {
       find.byType(TextField).at(1),
       'First person to finish wins',
     );
-    await tester.enterText(find.byType(TextField).at(2), 'Marko, Luka, Borna');
+    await tester.enterText(find.byType(TextField).at(2), 'Player 1, Player 2');
     await tester.tap(find.widgetWithText(FilledButton, 'Create'));
     await tester.pumpAndSettle();
 
     expect(find.text('Beer race'), findsOneWidget);
     expect(find.text('Custom'), findsOneWidget);
-    expect(find.text('Marko'), findsOneWidget);
+    expect(find.text('Player 1'), findsOneWidget);
   });
 
   testWidgets('records a dartboard hit in the current turn', (tester) async {
     await pumpApp(tester);
+    await addManualPlayer(tester, 'Player 1');
 
     expect(find.text('Target Point'), findsOneWidget);
-    expect(find.text('Marko'), findsWidgets);
+    expect(find.text('Player 1'), findsWidgets);
     expect(find.text('501'), findsWidgets);
 
     final dartboard = find.byType(Dartboard);
@@ -98,6 +111,7 @@ void main() {
 
   testWidgets('undo removes the last pending hit', (tester) async {
     await pumpApp(tester);
+    await addManualPlayer(tester, 'Player 1');
 
     await tester.tapAt(tester.getCenter(find.byType(Dartboard)));
     await tester.pump();
@@ -110,8 +124,9 @@ void main() {
 
   testWidgets('renders on a narrow mobile viewport', (tester) async {
     await pumpApp(tester, size: const Size(390, 844));
+    await addManualPlayer(tester, 'Player 1');
 
-    expect(find.text('Marko'), findsWidgets);
+    expect(find.text('Player 1'), findsWidgets);
     expect(find.byType(Dartboard), findsOneWidget);
 
     await tester.tapAt(tester.getCenter(find.byType(Dartboard)));
@@ -134,17 +149,17 @@ void main() {
   });
 
   test('keeps the app user profile separate from the active match player', () {
-    final controller = GameStateController();
+    final controller = GameStateController(gameId: 'darts', gameName: 'Darts');
 
     expect(controller.currentUser.displayName, 'Guest');
     expect(controller.currentUser.initials, 'G');
-    expect(controller.currentPlayer.name, 'Marko');
+    expect(controller.currentPlayer.name, 'No Players');
 
-    controller.updateUserProfile('Luka Guest', 0xFF1A6EB4);
+    controller.updateUserProfile('Guest Profile', 0xFF1A6EB4);
 
-    expect(controller.currentUser.displayName, 'Luka Guest');
-    expect(controller.currentUser.initials, 'L');
-    expect(controller.currentPlayer.name, 'Marko');
+    expect(controller.currentUser.displayName, 'Guest Profile');
+    expect(controller.currentUser.initials, 'G');
+    expect(controller.currentPlayer.name, 'No Players');
   });
 
   test('includes board games and party competitions as presets', () {
@@ -173,10 +188,9 @@ void main() {
     expect(const AppLocalizations(Locale('ja')).t('game.darts.name'), 'ダーツ');
   });
 
-
   test('tracks the most frequently hit dartboard number', () {
     const player = PlayerScore(
-      name: 'Marko',
+      name: 'Player 1',
       avatarColorValue: 0xFF0F8B6B,
       remaining: 301,
       totalScored: 140,

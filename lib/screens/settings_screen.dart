@@ -16,7 +16,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _playerNameController = TextEditingController();
-  final TextEditingController _groupNameController = TextEditingController();
   int _newPlayerColor = 0xFF0F8B6B; // Default emerald
 
   final List<int> _colorOptions = const [
@@ -31,7 +30,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _playerNameController.dispose();
-    _groupNameController.dispose();
     super.dispose();
   }
 
@@ -128,8 +126,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       }).toList(),
                     ),
                     const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
+                    Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(),
@@ -138,7 +138,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             style: TextStyle(color: palette.textMuted),
                           ),
                         ),
-                        const SizedBox(width: 8),
                         FilledButton(
                           style: FilledButton.styleFrom(
                             backgroundColor: palette.primary,
@@ -226,107 +225,109 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // Game Mode & Rules Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: palette.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: palette.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _SectionTitle(
-                  title: 'Game Mode',
-                  icon: Icons.videogame_asset,
-                  palette: palette,
-                ),
-                SegmentedButton<GameMode>(
-                  segments: const [
-                    ButtonSegment(value: GameMode.x01, label: Text('X01')),
-                    ButtonSegment(
-                      value: GameMode.countUp,
-                      label: Text('Count Up'),
-                    ),
-                  ],
-                  selected: {settings.mode},
-                  onSelectionChanged: (selection) {
-                    _confirmSettingsChange(() {
-                      widget.controller.updateSettings(mode: selection.first);
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                if (settings.mode == GameMode.x01) ...[
+          if (widget.controller.isDartsGame) ...[
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: palette.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: palette.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   _SectionTitle(
-                    title: 'Starting Score',
-                    icon: Icons.score,
+                    title: 'Game Mode',
+                    icon: Icons.videogame_asset,
                     palette: palette,
                   ),
-                  Wrap(
-                    spacing: 8,
-                    children: widget.controller.scoreOptions.map((score) {
-                      final isSelected = settings.startingScore == score;
-                      return ChoiceChip(
-                        label: Text('$score'),
-                        selected: isSelected,
-                        selectedColor: palette.primarySoft,
-                        labelStyle: TextStyle(
-                          color: isSelected ? palette.primary : palette.text,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        onSelected: (_) {
-                          _confirmSettingsChange(() {
-                            widget.controller.updateSettings(
-                              startingScore: score,
-                            );
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-
-                  _SectionTitle(
-                    title: 'Finish Rule',
-                    icon: Icons.flag,
-                    palette: palette,
-                  ),
-                  SegmentedButton<OutRule>(
+                  SegmentedButton<GameMode>(
                     segments: const [
+                      ButtonSegment(value: GameMode.x01, label: Text('X01')),
                       ButtonSegment(
-                        value: OutRule.singleOut,
-                        label: Text('Single'),
-                      ),
-                      ButtonSegment(
-                        value: OutRule.doubleOut,
-                        label: Text('Double'),
-                      ),
-                      ButtonSegment(
-                        value: OutRule.masterOut,
-                        label: Text('Master'),
+                        value: GameMode.countUp,
+                        label: Text('Count Up'),
                       ),
                     ],
-                    selected: {settings.outRule},
+                    selected: {settings.mode},
                     onSelectionChanged: (selection) {
                       _confirmSettingsChange(() {
-                        widget.controller.updateSettings(
-                          outRule: selection.first,
-                        );
+                        widget.controller.updateSettings(mode: selection.first);
                       });
                     },
                   ),
+                  const SizedBox(height: 16),
+                  if (settings.mode == GameMode.x01) ...[
+                    _SectionTitle(
+                      title: 'Starting Score',
+                      icon: Icons.score,
+                      palette: palette,
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: widget.controller.scoreOptions.map((score) {
+                        final isSelected = settings.startingScore == score;
+                        return ChoiceChip(
+                          label: Text('$score'),
+                          selected: isSelected,
+                          selectedColor: palette.primarySoft,
+                          labelStyle: TextStyle(
+                            color: isSelected ? palette.primary : palette.text,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          onSelected: (_) {
+                            _confirmSettingsChange(() {
+                              widget.controller.updateSettings(
+                                startingScore: score,
+                              );
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    _SectionTitle(
+                      title: 'Finish Rule',
+                      icon: Icons.flag,
+                      palette: palette,
+                    ),
+                    SegmentedButton<OutRule>(
+                      segments: const [
+                        ButtonSegment(
+                          value: OutRule.singleOut,
+                          label: Text('Single'),
+                        ),
+                        ButtonSegment(
+                          value: OutRule.doubleOut,
+                          label: Text('Double'),
+                        ),
+                        ButtonSegment(
+                          value: OutRule.masterOut,
+                          label: Text('Master'),
+                        ),
+                      ],
+                      selected: {settings.outRule},
+                      onSelectionChanged: (selection) {
+                        _confirmSettingsChange(() {
+                          widget.controller.updateSettings(
+                            outRule: selection.first,
+                          );
+                        });
+                      },
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
+          ],
 
           // Players List & Management
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 10,
             children: [
               Text(
                 'Players Lineup',

@@ -233,7 +233,10 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
   @override
   void initState() {
     super.initState();
-    _controller = GameStateController();
+    _controller = GameStateController(
+      gameId: widget.game.id,
+      gameName: widget.game.name,
+    );
   }
 
   @override

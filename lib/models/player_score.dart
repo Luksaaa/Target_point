@@ -3,6 +3,7 @@ import 'dart_hit.dart';
 
 class PlayerScore {
   const PlayerScore({
+    this.userId,
     required this.name,
     required this.avatarColorValue,
     required this.remaining,
@@ -11,12 +12,15 @@ class PlayerScore {
     required this.isWinner,
   });
 
+  final String? userId;
   final String name;
   final int avatarColorValue; // Hex ARGB representation
   final int remaining;
   final int totalScored;
   final List<List<DartHit>> turns;
   final bool isWinner;
+
+  bool get isRegisteredUser => userId != null && userId!.isNotEmpty;
 
   double get average {
     if (totalThrows == 0) return 0.0;
@@ -102,6 +106,7 @@ class PlayerScore {
   }
 
   PlayerScore copyWith({
+    String? userId,
     String? name,
     int? avatarColorValue,
     int? remaining,
@@ -110,6 +115,7 @@ class PlayerScore {
     bool? isWinner,
   }) {
     return PlayerScore(
+      userId: userId ?? this.userId,
       name: name ?? this.name,
       avatarColorValue: avatarColorValue ?? this.avatarColorValue,
       remaining: remaining ?? this.remaining,

@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import 'dart_hit.dart';
@@ -38,18 +36,15 @@ class PlayerProfile {
 }
 
 class GameStateController extends ChangeNotifier {
-  GameStateController() {
+  GameStateController({required this.gameId, required this.gameName}) {
     _initializeServices();
-
-    _profiles.addAll([
-      PlayerProfile(name: 'Marko', avatarColorValue: 0xFF0F8B6B),
-      PlayerProfile(name: 'Luka', avatarColorValue: 0xFFC7352F),
-      PlayerProfile(name: 'Borna', avatarColorValue: 0xFFF6D77B),
-    ]);
 
     // Setup initial match
     _resetMatch();
   }
+
+  final String gameId;
+  final String gameName;
 
   final AuthRepository _authRepository = AuthRepository();
   StreamSubscription<Map<String, dynamic>?>? _liveMatchSubscription;
@@ -98,6 +93,7 @@ class GameStateController extends ChangeNotifier {
   String? get liveMatchMessage => _liveMatchMessage;
 
   bool get isLiveMatchActive => _liveMatchId != null;
+  bool get isDartsGame => gameId == 'darts';
 
   void changeTab(int index) {
     _activeTabIndex = index;
@@ -164,7 +160,7 @@ class GameStateController extends ChangeNotifier {
         .toList();
   }
 
-  // Account, player groups & following
+  // Account and social state
   Future<void> signInWithGoogle() async {
     if (_isSigningIn) {
       return;
@@ -178,6 +174,7 @@ class GameStateController extends ChangeNotifier {
     if (result.isSuccess) {
       _currentUser = result.session!;
       _accountMessage = 'Signed in as ${_currentUser.displayName}.';
+      _ensureCurrentUserParticipant();
       await _activateRealtimeMatchForCurrentUser();
     } else {
       _accountMessage = result.errorMessage;
@@ -188,8 +185,17 @@ class GameStateController extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    final signedOutUserId = _currentUser.id;
     await leaveLiveMatch();
     await _authRepository.signOut();
+    _players.removeWhere((player) => player.userId == signedOutUserId);
+    _profiles.removeWhere(
+      (profile) => profile.name == _currentUser.displayName,
+    );
+    _currentTurn.clear();
+    _currentPlayerIndex = _players.isEmpty
+        ? 0
+        : _currentPlayerIndex % _players.length;
     _currentUser = const UserSession(
       id: 'guest',
       displayName: 'Guest',
@@ -214,7 +220,58 @@ class GameStateController extends ChangeNotifier {
     _accountMessage = _currentUser.isGuest
         ? 'Guest profile updated locally.'
         : 'Profile updated for this session.';
+    _ensureCurrentUserParticipant();
+    _syncLiveMatch();
     notifyListeners();
+  }
+
+  void _ensureCurrentUserParticipant() {
+    if (_currentUser.isGuest) {
+      return;
+    }
+
+    final existingProfileIndex = _profiles.indexWhere(
+      (profile) => profile.name == _currentUser.displayName,
+    );
+    if (existingProfileIndex == -1) {
+      _profiles.add(
+        PlayerProfile(
+          name: _currentUser.displayName,
+          avatarColorValue: _currentUser.avatarColorValue,
+        ),
+      );
+    } else {
+      _profiles[existingProfileIndex].avatarColorValue =
+          _currentUser.avatarColorValue;
+    }
+
+    final existingPlayerIndex = _players.indexWhere(
+      (player) => player.userId == _currentUser.id,
+    );
+    final player = PlayerScore(
+      userId: _currentUser.id,
+      name: _currentUser.displayName,
+      avatarColorValue: _currentUser.avatarColorValue,
+      remaining: _settings.mode == GameMode.x01 && isDartsGame
+          ? _settings.startingScore
+          : 0,
+      totalScored: 0,
+      turns: const [],
+      isWinner: false,
+    );
+
+    if (existingPlayerIndex == -1) {
+      _players.add(player);
+      if (_currentPlayerIndex >= _players.length) {
+        _currentPlayerIndex = 0;
+      }
+    } else {
+      _players[existingPlayerIndex] = _players[existingPlayerIndex].copyWith(
+        userId: _currentUser.id,
+        name: _currentUser.displayName,
+        avatarColorValue: _currentUser.avatarColorValue,
+      );
+    }
   }
 
   Future<void> _activateRealtimeMatchForCurrentUser() async {
@@ -222,75 +279,21 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final matchId = 'active-${_currentUser.id}';
+    final matchId = '$gameId-active';
     _liveMatchId = matchId;
     _isLiveHost = true;
     _liveHostUserId = _currentUser.id;
     _liveMatchMessage = 'Realtime sync is active.';
 
-    final payload = await _authRepository.fetchDartMatch(matchId);
-    _subscribeToLiveMatch(matchId);
+    final payload = await _authRepository.fetchGameSession(gameId);
+    _subscribeToLiveMatch(gameId);
     if (payload == null) {
       await _syncLiveMatch();
       return;
     }
     _applyLivePayload(payload);
-  }
-
-  Future<void> createLiveMatch() async {
-    if (!_cloudFeaturesAvailable) {
-      _liveMatchMessage = 'Firebase is not ready for live matches.';
-      notifyListeners();
-      return;
-    }
-    if (_currentUser.isGuest) {
-      _liveMatchMessage = 'Sign in with Google to create a live match.';
-      notifyListeners();
-      return;
-    }
-
-    final code = _generateLiveMatchCode();
-    _liveMatchId = code;
-    _isLiveHost = true;
-    _liveHostUserId = _currentUser.id;
-    _liveMatchMessage = 'Live match created. Share code $code.';
-    _subscribeToLiveMatch(code);
+    _ensureCurrentUserParticipant();
     await _syncLiveMatch();
-    notifyListeners();
-  }
-
-  Future<void> joinLiveMatch(String matchCode) async {
-    final code = matchCode.trim().toUpperCase();
-    if (code.isEmpty) {
-      _liveMatchMessage = 'Enter a live match code.';
-      notifyListeners();
-      return;
-    }
-    if (!_cloudFeaturesAvailable) {
-      _liveMatchMessage = 'Firebase is not ready for live matches.';
-      notifyListeners();
-      return;
-    }
-    if (_currentUser.isGuest) {
-      _liveMatchMessage = 'Sign in with Google to join a live match.';
-      notifyListeners();
-      return;
-    }
-
-    final payload = await _authRepository.fetchDartMatch(code);
-    if (payload == null) {
-      _liveMatchMessage = 'No live match found for $code.';
-      notifyListeners();
-      return;
-    }
-
-    _liveMatchId = code;
-    _liveHostUserId = payload['hostUserId'] as String?;
-    _isLiveHost = _liveHostUserId == _currentUser.id;
-    _liveMatchMessage = 'Joined live match $code.';
-    _applyLivePayload(payload);
-    _subscribeToLiveMatch(code);
-    notifyListeners();
   }
 
   Future<void> leaveLiveMatch() async {
@@ -305,7 +308,7 @@ class GameStateController extends ChangeNotifier {
 
   void _subscribeToLiveMatch(String matchId) {
     _liveMatchSubscription?.cancel();
-    _liveMatchSubscription = _authRepository.watchDartMatch(matchId).listen((
+    _liveMatchSubscription = _authRepository.watchGameSession(matchId).listen((
       payload,
     ) {
       if (payload == null) {
@@ -322,7 +325,7 @@ class GameStateController extends ChangeNotifier {
     }
 
     try {
-      await _authRepository.saveDartMatch(matchId, _livePayload());
+      await _authRepository.saveGameSession(gameId, _livePayload());
     } catch (error) {
       _liveMatchMessage = 'Could not sync live match: $error';
       notifyListeners();
@@ -332,6 +335,8 @@ class GameStateController extends ChangeNotifier {
   Map<String, Object?> _livePayload() {
     return {
       'id': _liveMatchId,
+      'gameId': gameId,
+      'gameName': gameName,
       'hostUserId': _liveHostUserId ?? _currentUser.id,
       'updatedByUserId': _currentUser.id,
       'settings': _settingsToMap(_settings),
@@ -393,12 +398,6 @@ class GameStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _generateLiveMatchCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final random = Random(DateTime.now().microsecondsSinceEpoch);
-    return List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
   void followUser(String displayNameOrHandle) {
     final value = displayNameOrHandle.trim();
     if (value.isEmpty) {
@@ -450,8 +449,8 @@ class GameStateController extends ChangeNotifier {
     final newProfile = PlayerProfile(name: name, avatarColorValue: colorValue);
     _profiles.add(newProfile);
 
-    // If not in a finished game, add to the active match
-    if (!matchFinished) {
+    // If the match has room to edit, add to the active leaderboard.
+    if (_players.isEmpty || !matchFinished) {
       _players.add(
         PlayerScore(
           name: name,
@@ -556,6 +555,33 @@ class GameStateController extends ChangeNotifier {
         dy: -0.99,
       ),
     );
+  }
+
+  void adjustCurrentPlayerScore(int delta) {
+    if (_players.isEmpty || isDartsGame) {
+      return;
+    }
+
+    final player = currentPlayer;
+    final nextScore = (player.totalScored + delta).clamp(0, 999999);
+    _players[_currentPlayerIndex] = player.copyWith(
+      remaining: nextScore,
+      totalScored: nextScore,
+    );
+    _matchMessage = '${player.name}: $nextScore';
+    _syncLiveMatch();
+    notifyListeners();
+  }
+
+  void advanceGenericTurn() {
+    if (_players.isEmpty || isDartsGame) {
+      return;
+    }
+
+    _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.length;
+    _matchMessage = '${currentPlayer.name} is next.';
+    _syncLiveMatch();
+    notifyListeners();
   }
 
   void commitTurn() {
@@ -789,6 +815,7 @@ class GameStateController extends ChangeNotifier {
 
   Map<String, Object?> _playerToMap(PlayerScore player) {
     return {
+      'userId': player.userId,
       'name': player.name,
       'avatarColorValue': player.avatarColorValue,
       'remaining': player.remaining,
@@ -802,6 +829,7 @@ class GameStateController extends ChangeNotifier {
 
   PlayerScore _playerFromMap(Map<String, dynamic> value) {
     return PlayerScore(
+      userId: value['userId'] as String?,
       name: value['name'] as String? ?? 'Player',
       avatarColorValue: _intFromValue(
         value['avatarColorValue'],
