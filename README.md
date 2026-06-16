@@ -42,6 +42,21 @@ flutter pub get
 flutter run
 ```
 
+## Web build za Cloudflare Pages
+
+Web verzija se builda u `build/web`:
+
+```powershell
+flutter build web --release
+```
+
+Za Cloudflare Pages koristi:
+
+- Build command: `flutter build web --release`
+- Build output directory: `build/web`
+
+U `web/` su dodani `_headers` i `_redirects`, pa ih Flutter kopira u `build/web` tijekom web builda.
+
 ## Provjere
 
 ```powershell
@@ -67,3 +82,5 @@ flutter build apk --debug
 - Detaljna pravila bodovanja postoje samo za pikado.
 - Ostale igre trenutno koriste genericki leaderboard.
 - Custom aktivnosti se jos ne spremaju trajno u Firebase.
+- Firebase web konfiguracija jos nije dodana, pa web build radi kao aplikacija, ali Google login/realtime sync na webu trazi dodatni Firebase Web app config.
+- Nisu svi user-facing tekstovi prevedeni na sve jezike; detalji su u `docs/localization_audit.md`.
