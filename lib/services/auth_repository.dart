@@ -171,28 +171,33 @@ class AuthRepository {
       'handle': followedUser.handle,
       'followedAt': ServerValue.timestamp,
     });
+
+    await _db.child('users/${followedUser.id}/followers/$ownerUserId').set({
+      'displayName': ownerUserId,
+      'followedAt': ServerValue.timestamp,
+    });
   }
 
-  Future<void> saveGameSession(
-    String gameId,
+  Future<void> saveSession(
+    String sessionId,
     Map<String, Object?> payload,
   ) async {
     if (!_firebaseReady) {
       return;
     }
 
-    await _db.child('gameSessions/$gameId/active').update({
+    await _db.child('sessions/$sessionId').update({
       ...payload,
       'updatedAt': ServerValue.timestamp,
     });
   }
 
-  Future<Map<String, dynamic>?> fetchGameSession(String gameId) async {
+  Future<Map<String, dynamic>?> fetchSession(String sessionId) async {
     if (!_firebaseReady) {
       return null;
     }
 
-    final snapshot = await _db.child('gameSessions/$gameId/active').get();
+    final snapshot = await _db.child('sessions/$sessionId').get();
     final value = snapshot.value;
     if (value is Map) {
       return Map<String, dynamic>.from(value);
@@ -200,17 +205,52 @@ class AuthRepository {
     return null;
   }
 
-  Stream<Map<String, dynamic>?> watchGameSession(String gameId) {
+  Stream<Map<String, dynamic>?> watchSession(String sessionId) {
     if (!_firebaseReady) {
       return const Stream.empty();
     }
 
-    return _db.child('gameSessions/$gameId/active').onValue.map((event) {
+    return _db.child('sessions/$sessionId').onValue.map((event) {
       final value = event.snapshot.value;
       if (value is Map) {
         return Map<String, dynamic>.from(value);
       }
       return null;
+    });
+  }
+
+  Future<void> saveGameSession(
+    String gameId,
+    Map<String, Object?> payload,
+  ) async {
+    await saveSession('$gameId-active', payload);
+  }
+
+  Future<Map<String, dynamic>?> fetchGameSession(String gameId) {
+    return fetchSession('$gameId-active');
+  }
+
+  Stream<Map<String, dynamic>?> watchGameSession(String gameId) {
+    return watchSession('$gameId-active');
+  }
+
+  Future<void> addUserSession({
+    required String userId,
+    required String sessionId,
+    required String sportId,
+    required String sessionName,
+    required String role,
+  }) async {
+    if (!_firebaseReady || userId == 'guest') {
+      return;
+    }
+
+    await _db.child('userSessions/$userId/$sessionId').update({
+      'sessionId': sessionId,
+      'sportId': sportId,
+      'sessionName': sessionName,
+      'role': role,
+      'updatedAt': ServerValue.timestamp,
     });
   }
 
@@ -222,6 +262,14 @@ class AuthRepository {
     await _db.child('users/${session.id}/profile').update({
       'displayName': session.displayName,
       'email': session.email,
+      'avatarColorValue': session.avatarColorValue,
+      'updatedAt': ServerValue.timestamp,
+    });
+
+    await _db.child('publicUsers/${session.id}').update({
+      'displayName': session.displayName,
+      'email': session.email,
+      'avatarColorValue': session.avatarColorValue,
       'updatedAt': ServerValue.timestamp,
     });
   }

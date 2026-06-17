@@ -16,6 +16,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _playerNameController = TextEditingController();
+  final TextEditingController _sessionNameController = TextEditingController();
+  final TextEditingController _joinSessionController = TextEditingController();
+  final TextEditingController _participantController = TextEditingController();
   int _newPlayerColor = 0xFF0F8B6B; // Default emerald
 
   final List<int> _colorOptions = const [
@@ -30,6 +33,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _playerNameController.dispose();
+    _sessionNameController.dispose();
+    _joinSessionController.dispose();
+    _participantController.dispose();
     super.dispose();
   }
 
@@ -224,6 +230,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+          _SessionSyncPanel(
+            controller: widget.controller,
+            sessionNameController: _sessionNameController,
+            joinSessionController: _joinSessionController,
+            participantController: _participantController,
+            palette: palette,
+          ),
+          const SizedBox(height: 16),
 
           if (widget.controller.isDartsGame) ...[
             Container(
@@ -449,6 +463,221 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
         ],
+      ),
+    );
+  }
+}
+
+class _SessionSyncPanel extends StatelessWidget {
+  const _SessionSyncPanel({
+    required this.controller,
+    required this.sessionNameController,
+    required this.joinSessionController,
+    required this.participantController,
+    required this.palette,
+  });
+
+  final GameStateController controller;
+  final TextEditingController sessionNameController;
+  final TextEditingController joinSessionController;
+  final TextEditingController participantController;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isGuest = controller.currentUser.isGuest;
+    final activeSessionId = controller.activeSessionId;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sync_alt, color: palette.primary, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Realtime Session',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: palette.text,
+                  ),
+                ),
+              ),
+              if (activeSessionId != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: palette.primarySoft,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'Live',
+                    style: TextStyle(
+                      color: palette.primary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (isGuest) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Guest mode is local only. Sign in to sync scores.',
+              style: TextStyle(
+                color: palette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 8),
+            Text(
+              activeSessionId == null
+                  ? 'Create or join a session to sync this scoreboard.'
+                  : '${controller.activeSessionName}\nID: $activeSessionId',
+              style: TextStyle(
+                color: palette.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (controller.liveMatchMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                controller.liveMatchMessage!,
+                style: TextStyle(color: palette.textMuted, fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: () => _showTextActionDialog(
+                    context: context,
+                    title: 'Create session',
+                    hintText: 'Session name',
+                    controller: sessionNameController,
+                    actionLabel: 'Create',
+                    onSubmit: controller.createCloudSession,
+                  ),
+                  icon: const Icon(Icons.add_link, size: 18),
+                  label: const Text('Create'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _showTextActionDialog(
+                    context: context,
+                    title: 'Join session',
+                    hintText: 'Session ID',
+                    controller: joinSessionController,
+                    actionLabel: 'Join',
+                    onSubmit: controller.joinCloudSession,
+                  ),
+                  icon: const Icon(Icons.login, size: 18),
+                  label: const Text('Join'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => _showTextActionDialog(
+                    context: context,
+                    title: 'Add participant',
+                    hintText: 'Player name or Firebase user ID',
+                    controller: participantController,
+                    actionLabel: 'Add',
+                    onSubmit: controller.addParticipantToSession,
+                  ),
+                  icon: const Icon(Icons.person_add, size: 18),
+                  label: const Text('Participant'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showTextActionDialog({
+    required BuildContext context,
+    required String title,
+    required String hintText,
+    required TextEditingController controller,
+    required String actionLabel,
+    required Future<void> Function(String value) onSubmit,
+  }) {
+    controller.clear();
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(title),
+          content: _SessionTextField(
+            controller: controller,
+            hintText: hintText,
+            palette: palette,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = controller.text;
+                Navigator.of(context).pop();
+                onSubmit(value);
+              },
+              child: Text(actionLabel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _SessionTextField extends StatelessWidget {
+  const _SessionTextField({
+    required this.controller,
+    required this.hintText,
+    required this.palette,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      minLines: 1,
+      maxLines: 1,
+      decoration: InputDecoration(
+        hintText: hintText,
+        isDense: true,
+        filled: true,
+        fillColor: palette.surfaceMuted,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: palette.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: palette.border),
+        ),
       ),
     );
   }

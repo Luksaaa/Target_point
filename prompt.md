@@ -22,18 +22,28 @@ The application must not rely on fake default players. A match starts without ha
 Active game sessions sync through Firebase Realtime Database:
 
 ```text
-gameSessions/{gameId}/active
+sessions/{sessionId}
+userSessions/{uid}/{sessionId}
+users/{uid}/profile
+publicUsers/{uid}
 ```
 
 The saved session includes:
 
+- `id`
+- `sessionName`
 - `gameId`
 - `gameName`
+- `sportId`
+- `sportName`
+- `ownerUserId`
 - `settings`
 - `players`
+- `participants`
 - `currentTurn`
 - `currentPlayerIndex`
 - `matchMessage`
+- `status`
 - `updatedByUserId`
 
 Players may include a `userId` when they represent a registered Firebase user. Local/manual players have no `userId`.

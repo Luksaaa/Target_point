@@ -83,11 +83,14 @@ class GameStateController extends ChangeNotifier {
 
   String? _liveMatchId;
   String? get liveMatchId => _liveMatchId;
+  String? get activeSessionId => _liveMatchId;
 
   bool _isLiveHost = false;
   bool get isLiveHost => _isLiveHost;
 
   String? _liveHostUserId;
+  String _activeSessionName = 'Personal session';
+  String get activeSessionName => _activeSessionName;
 
   String? _liveMatchMessage;
   String? get liveMatchMessage => _liveMatchMessage;
@@ -279,20 +282,99 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final matchId = '$gameId-active';
+    final matchId = '$gameId-${_currentUser.id}-active';
     _liveMatchId = matchId;
+    _activeSessionName = 'My $gameName session';
     _isLiveHost = true;
     _liveHostUserId = _currentUser.id;
-    _liveMatchMessage = 'Realtime sync is active.';
+    _liveMatchMessage = 'Realtime sync is active for this session.';
 
-    final payload = await _authRepository.fetchGameSession(gameId);
-    _subscribeToLiveMatch(gameId);
+    final payload = await _authRepository.fetchSession(matchId);
+    _subscribeToLiveMatch(matchId);
     if (payload == null) {
+      await _authRepository.addUserSession(
+        userId: _currentUser.id,
+        sessionId: matchId,
+        sportId: gameId,
+        sessionName: _activeSessionName,
+        role: 'owner',
+      );
       await _syncLiveMatch();
       return;
     }
     _applyLivePayload(payload);
     _ensureCurrentUserParticipant();
+    await _syncLiveMatch();
+  }
+
+  Future<void> createCloudSession(String sessionName) async {
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      _liveMatchMessage = 'Sign in to create a synced session.';
+      notifyListeners();
+      return;
+    }
+
+    final trimmed = sessionName.trim();
+    final safeName = trimmed.isEmpty ? '$gameName session' : trimmed;
+    final userPart = _currentUser.id.length > 8
+        ? _currentUser.id.substring(0, 8)
+        : _currentUser.id;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final sessionId = '$gameId-$userPart-$timestamp';
+
+    await _liveMatchSubscription?.cancel();
+    _liveMatchId = sessionId;
+    _activeSessionName = safeName;
+    _isLiveHost = true;
+    _liveHostUserId = _currentUser.id;
+    _liveMatchMessage = 'Created synced session $sessionId.';
+    _ensureCurrentUserParticipant();
+    _subscribeToLiveMatch(sessionId);
+    await _authRepository.addUserSession(
+      userId: _currentUser.id,
+      sessionId: sessionId,
+      sportId: gameId,
+      sessionName: safeName,
+      role: 'owner',
+    );
+    await _syncLiveMatch();
+    notifyListeners();
+  }
+
+  Future<void> joinCloudSession(String sessionId) async {
+    final trimmed = sessionId.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      _liveMatchMessage = 'Sign in to join a synced session.';
+      notifyListeners();
+      return;
+    }
+
+    final payload = await _authRepository.fetchSession(trimmed);
+    if (payload == null) {
+      _liveMatchMessage = 'Session not found.';
+      notifyListeners();
+      return;
+    }
+
+    await _liveMatchSubscription?.cancel();
+    _liveMatchId = trimmed;
+    _activeSessionName =
+        payload['sessionName'] as String? ??
+        payload['gameName'] as String? ??
+        '$gameName session';
+    _applyLivePayload(payload);
+    _ensureCurrentUserParticipant();
+    _subscribeToLiveMatch(trimmed);
+    await _authRepository.addUserSession(
+      userId: _currentUser.id,
+      sessionId: trimmed,
+      sportId: gameId,
+      sessionName: _activeSessionName,
+      role: 'participant',
+    );
     await _syncLiveMatch();
   }
 
@@ -308,7 +390,7 @@ class GameStateController extends ChangeNotifier {
 
   void _subscribeToLiveMatch(String matchId) {
     _liveMatchSubscription?.cancel();
-    _liveMatchSubscription = _authRepository.watchGameSession(matchId).listen((
+    _liveMatchSubscription = _authRepository.watchSession(matchId).listen((
       payload,
     ) {
       if (payload == null) {
@@ -325,7 +407,7 @@ class GameStateController extends ChangeNotifier {
     }
 
     try {
-      await _authRepository.saveGameSession(gameId, _livePayload());
+      await _authRepository.saveSession(matchId, _livePayload());
     } catch (error) {
       _liveMatchMessage = 'Could not sync live match: $error';
       notifyListeners();
@@ -335,12 +417,18 @@ class GameStateController extends ChangeNotifier {
   Map<String, Object?> _livePayload() {
     return {
       'id': _liveMatchId,
+      'sessionName': _activeSessionName,
       'gameId': gameId,
       'gameName': gameName,
+      'sportId': gameId,
+      'sportName': gameName,
       'hostUserId': _liveHostUserId ?? _currentUser.id,
+      'ownerUserId': _liveHostUserId ?? _currentUser.id,
       'updatedByUserId': _currentUser.id,
+      'status': matchFinished ? 'finished' : 'active',
       'settings': _settingsToMap(_settings),
       'players': _players.map(_playerToMap).toList(),
+      'participants': _players.map(_playerToParticipantMap).toList(),
       'currentTurn': _currentTurn.map(_hitToMap).toList(),
       'currentPlayerIndex': _currentPlayerIndex,
       'matchMessage': _matchMessage,
@@ -353,6 +441,9 @@ class GameStateController extends ChangeNotifier {
       final settingsValue = payload['settings'];
       final playersValue = payload['players'];
       final turnValue = payload['currentTurn'];
+      _liveMatchId = payload['id'] as String? ?? _liveMatchId;
+      _activeSessionName =
+          payload['sessionName'] as String? ?? _activeSessionName;
       _liveHostUserId = payload['hostUserId'] as String? ?? _liveHostUserId;
       _isLiveHost = _liveHostUserId == _currentUser.id;
 
@@ -364,20 +455,7 @@ class GameStateController extends ChangeNotifier {
           .map((value) => _playerFromMap(Map<String, dynamic>.from(value)))
           .toList();
       if (_players.isEmpty) {
-        _players = _profiles
-            .map(
-              (profile) => PlayerScore(
-                name: profile.name,
-                avatarColorValue: profile.avatarColorValue,
-                remaining: _settings.mode == GameMode.x01
-                    ? _settings.startingScore
-                    : 0,
-                totalScored: 0,
-                turns: const [],
-                isWinner: false,
-              ),
-            )
-            .toList();
+        _players = _profiles.map(_playerFromProfile).toList();
       }
       _currentTurn
         ..clear()
@@ -396,6 +474,26 @@ class GameStateController extends ChangeNotifier {
       _isApplyingRemoteState = false;
     }
     notifyListeners();
+  }
+
+  Future<void> addParticipantToSession(String displayNameOrUserId) async {
+    final value = displayNameOrUserId.trim();
+    if (value.isEmpty) {
+      return;
+    }
+
+    final existing = _players.any(
+      (player) =>
+          player.name.toLowerCase() == value.toLowerCase() ||
+          player.userId == value,
+    );
+    if (existing) {
+      _liveMatchMessage = '$value is already in this session.';
+      notifyListeners();
+      return;
+    }
+
+    addPlayerProfile(value, _nextAvatarColor());
   }
 
   void followUser(String displayNameOrHandle) {
@@ -827,6 +925,29 @@ class GameStateController extends ChangeNotifier {
     };
   }
 
+  Map<String, Object?> _playerToParticipantMap(PlayerScore player) {
+    return {
+      'userId': player.userId,
+      'displayName': player.name,
+      'avatarColorValue': player.avatarColorValue,
+      'isRegistered': player.isRegisteredUser,
+      'role': player.userId == _liveHostUserId ? 'owner' : 'participant',
+    };
+  }
+
+  PlayerScore _playerFromProfile(PlayerProfile profile) {
+    return PlayerScore(
+      name: profile.name,
+      avatarColorValue: profile.avatarColorValue,
+      remaining: _settings.mode == GameMode.x01 && isDartsGame
+          ? _settings.startingScore
+          : 0,
+      totalScored: 0,
+      turns: const [],
+      isWinner: false,
+    );
+  }
+
   PlayerScore _playerFromMap(Map<String, dynamic> value) {
     return PlayerScore(
       userId: value['userId'] as String?,
@@ -907,5 +1028,19 @@ class GameStateController extends ChangeNotifier {
       return double.tryParse(value);
     }
     return null;
+  }
+
+  int _nextAvatarColor() {
+    const colors = [
+      0xFF0F8B6B,
+      0xFFC7352F,
+      0xFFF6D77B,
+      0xFF1A6EB4,
+      0xFF8E44AD,
+      0xFFE67E22,
+      0xFF2F4858,
+      0xFF0096C7,
+    ];
+    return colors[_players.length % colors.length];
   }
 }

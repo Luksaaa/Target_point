@@ -1,0 +1,40 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "publicUsers": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "userSessions": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "sessions": {
+      "$sessionId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.child('ownerUserId').val() === auth.uid : data.child('ownerUserId').val() === auth.uid || newData.child('updatedByUserId').val() === auth.uid)"
+      }
+    },
+    "sharedPlayerGroups": {
+      "$groupId": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() ? newData.child('ownerUserId').val() === auth.uid : data.child('ownerUserId').val() === auth.uid)"
+      }
+    },
+    "dartMatches": {
+      "$matchId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

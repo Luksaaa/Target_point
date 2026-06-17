@@ -23,16 +23,28 @@ Target Point je Flutter aplikacija za pracenje natjecateljskih aktivnosti. Pocet
 
 ## Firebase podaci
 
-Realtime sessioni se spremaju po igri:
+Realtime sessioni se spremaju po session ID-u:
 
 ```text
-gameSessions/{gameId}/active
+sessions/{sessionId}
 ```
 
-Korisnicki profili se spremaju pod:
+Popis sessiona koje korisnik vidi sprema se pod:
+
+```text
+userSessions/{uid}/{sessionId}
+```
+
+Privatni korisnicki profil sprema se pod:
 
 ```text
 users/{uid}/profile
+```
+
+Javni profil za pronalazak i povezivanje korisnika sprema se pod:
+
+```text
+publicUsers/{uid}
 ```
 
 ## Pokretanje
