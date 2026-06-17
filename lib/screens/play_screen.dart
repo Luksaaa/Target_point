@@ -329,6 +329,11 @@ class _CurrentTurnHeader extends StatelessWidget {
     final checkoutHint = controller.checkoutHint;
     final checkoutTargets = _checkoutTargets(checkoutHint);
     final canScore = controller.canScoreCurrentTurn;
+    final statusMessage = !canScore && !controller.matchFinished
+        ? 'Waiting for ${player.name}'
+        : controller.matchMessage;
+    final showCheckoutHint =
+        checkoutHint != null && canScore && statusMessage == null;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -443,7 +448,7 @@ class _CurrentTurnHeader extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (checkoutHint != null && canScore)
+                if (showCheckoutHint)
                   Text(
                     'Out: $checkoutHint',
                     maxLines: 1,
@@ -454,24 +459,11 @@ class _CurrentTurnHeader extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
-                if (!canScore && !controller.matchFinished)
+                if (statusMessage != null)
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      'Waiting for ${player.name}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: palette.textMuted,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  )
-                else if (controller.matchMessage != null)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      controller.matchMessage!,
+                      statusMessage,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
