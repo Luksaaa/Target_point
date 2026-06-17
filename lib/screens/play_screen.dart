@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/game_settings.dart';
 import '../models/game_state_controller.dart';
 import '../models/sport_game.dart';
@@ -95,6 +96,7 @@ class _PlayScreenState extends State<PlayScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
+    final l10n = AppLocalizations.of(context);
     final hits = controller.currentTurn;
 
     final actionRow = controller.isDartsGame
@@ -106,7 +108,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       ? null
                       : controller.undoLastHit,
                   icon: Icons.undo,
-                  label: 'Undo',
+                  label: l10n.t('action.undo'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -116,7 +118,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       ? null
                       : controller.addMiss,
                   icon: Icons.radio_button_unchecked,
-                  label: 'Miss',
+                  label: l10n.t('action.miss'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -126,7 +128,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       ? () => _confirmSaveTurn(context, palette)
                       : null,
                   icon: Icons.check,
-                  label: 'Save',
+                  label: l10n.t('action.saveTurn'),
                   filled: true,
                 ),
               ),
@@ -171,7 +173,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       ? null
                       : controller.advanceGenericTurn,
                   icon: Icons.skip_next,
-                  label: 'Next',
+                  label: l10n.t('action.next'),
                 ),
               ),
             ],
@@ -528,16 +530,20 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final child = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Text(label, maxLines: 1, softWrap: false),
+        ],
+      ),
+    );
+
     return filled
-        ? FilledButton.icon(
-            onPressed: onPressed,
-            icon: Icon(icon, size: 18),
-            label: Text(label),
-          )
-        : OutlinedButton.icon(
-            onPressed: onPressed,
-            icon: Icon(icon, size: 18),
-            label: Text(label),
-          );
+        ? FilledButton(onPressed: onPressed, child: child)
+        : OutlinedButton(onPressed: onPressed, child: child);
   }
 }

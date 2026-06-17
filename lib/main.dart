@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -416,6 +418,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
   Widget _buildAccountAvatar(AppPalette palette, {double size = 38}) {
     final user = _controller.currentUser;
     final photoUrl = user.photoUrl;
+    final imageProvider = _imageProviderFromPhotoUrl(photoUrl);
     return Container(
       width: size,
       height: size,
@@ -423,11 +426,11 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
         shape: BoxShape.circle,
         border: Border.all(color: palette.primary, width: 2),
         color: Color(user.avatarColorValue),
-        image: photoUrl == null || photoUrl.isEmpty
+        image: imageProvider == null
             ? null
-            : DecorationImage(image: NetworkImage(photoUrl), fit: BoxFit.cover),
+            : DecorationImage(image: imageProvider, fit: BoxFit.cover),
       ),
-      child: photoUrl == null || photoUrl.isEmpty
+      child: imageProvider == null
           ? Center(
               child: Text(
                 user.initials,
@@ -442,10 +445,26 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
     );
   }
 
+  ImageProvider? _imageProviderFromPhotoUrl(String? photoUrl) {
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return null;
+    }
+    if (photoUrl.startsWith('data:image')) {
+      final commaIndex = photoUrl.indexOf(',');
+      if (commaIndex == -1) {
+        return null;
+      }
+      return MemoryImage(base64Decode(photoUrl.substring(commaIndex + 1)));
+    }
+    return NetworkImage(photoUrl);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
+    final l10n = AppLocalizations.of(context);
+    final localizedGameName = l10n.gameName(widget.game.id, widget.game.name);
 
     return Scaffold(
       body: SafeArea(
@@ -489,7 +508,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Target Point',
+                                l10n.t('app.title'),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   fontWeight: FontWeight.w900,
                                   color: palette.text,
@@ -536,7 +555,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                                 Icons.play_circle,
                                 color: palette.primary,
                               ),
-                              label: const Text('Play'),
+                              label: Text(l10n.t('nav.play')),
                             ),
                             NavigationRailDestination(
                               icon: const Icon(Icons.bar_chart_outlined),
@@ -544,7 +563,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                                 Icons.bar_chart,
                                 color: palette.primary,
                               ),
-                              label: const Text('Scores'),
+                              label: Text(l10n.t('nav.scores')),
                             ),
                             NavigationRailDestination(
                               icon: const Icon(Icons.tune_outlined),
@@ -552,7 +571,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                                 Icons.tune,
                                 color: palette.primary,
                               ),
-                              label: const Text('Settings'),
+                              label: Text(l10n.t('nav.settings')),
                             ),
                             NavigationRailDestination(
                               icon: const Icon(Icons.history_outlined),
@@ -560,7 +579,7 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                                 Icons.history,
                                 color: palette.primary,
                               ),
-                              label: const Text('History'),
+                              label: Text(l10n.t('nav.history')),
                             ),
                           ],
                         ),
@@ -601,14 +620,14 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Target Point',
+                          l10n.t('app.title'),
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w900,
                             color: palette.text,
                           ),
                         ),
                         Text(
-                          widget.game.name,
+                          localizedGameName,
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: palette.primary,
                             fontWeight: FontWeight.bold,
@@ -658,26 +677,26 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                     unselectedLabelStyle: const TextStyle(
                       fontWeight: FontWeight.bold,
                     ),
-                    items: const [
+                    items: [
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.play_circle_outline),
-                        activeIcon: Icon(Icons.play_circle),
-                        label: 'Play',
+                        icon: const Icon(Icons.play_circle_outline),
+                        activeIcon: const Icon(Icons.play_circle),
+                        label: l10n.t('nav.play'),
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.bar_chart_outlined),
-                        activeIcon: Icon(Icons.bar_chart),
-                        label: 'Scores',
+                        icon: const Icon(Icons.bar_chart_outlined),
+                        activeIcon: const Icon(Icons.bar_chart),
+                        label: l10n.t('nav.scores'),
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.tune_outlined),
-                        activeIcon: Icon(Icons.tune),
-                        label: 'Settings',
+                        icon: const Icon(Icons.tune_outlined),
+                        activeIcon: const Icon(Icons.tune),
+                        label: l10n.t('nav.settings'),
                       ),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.history_outlined),
-                        activeIcon: Icon(Icons.history),
-                        label: 'History',
+                        icon: const Icon(Icons.history_outlined),
+                        activeIcon: const Icon(Icons.history),
+                        label: l10n.t('nav.history'),
                       ),
                     ],
                   ),

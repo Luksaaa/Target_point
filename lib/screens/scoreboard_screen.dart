@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../theme/app_palette.dart';
@@ -21,6 +22,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
+    final l10n = AppLocalizations.of(context);
     final players = [...widget.controller.players]
       ..sort((a, b) {
         if (widget.controller.isDartsGame &&
@@ -36,7 +38,9 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
         Padding(
           padding: const EdgeInsets.only(bottom: 16.0),
           child: Text(
-            widget.controller.isDartsGame ? 'Darts Leaderboard' : 'Leaderboard',
+            widget.controller.isDartsGame
+                ? l10n.t('scoreboard.dartsTitle')
+                : l10n.t('scoreboard.title'),
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w900,
               color: palette.text,
@@ -47,7 +51,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
           child: players.isEmpty
               ? Center(
                   child: Text(
-                    'No active players.',
+                    l10n.t('scoreboard.noPlayers'),
                     style: TextStyle(color: palette.textMuted),
                   ),
                 )
@@ -128,8 +132,8 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                                 Text(
                                   widget.controller.settings.mode ==
                                           GameMode.x01
-                                      ? 'LEFT'
-                                      : 'POINTS',
+                                      ? l10n.t('scoreboard.left')
+                                      : l10n.t('scoreboard.points'),
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,

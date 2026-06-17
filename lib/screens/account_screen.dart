@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/game_state_controller.dart';
@@ -28,20 +31,11 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   final _nameController = TextEditingController();
-  final _photoUrlController = TextEditingController();
   final _followController = TextEditingController();
+  final _imagePicker = ImagePicker();
   int _selectedColor = 0xFF0F8B6B;
   int _selectedSection = 0;
   String? _lastSyncedUserId;
-
-  static const _colorOptions = [
-    0xFF0F8B6B,
-    0xFFC7352F,
-    0xFFF6D77B,
-    0xFF1A6EB4,
-    0xFF8E44AD,
-    0xFFE67E22,
-  ];
 
   @override
   void initState() {
@@ -52,7 +46,6 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _photoUrlController.dispose();
     _followController.dispose();
     super.dispose();
   }
@@ -60,7 +53,6 @@ class _AccountScreenState extends State<AccountScreen> {
   void _syncProfileFields(UserSession user) {
     _lastSyncedUserId = user.id;
     _nameController.text = user.displayName;
-    _photoUrlController.text = user.photoUrl ?? '';
     _selectedColor = user.avatarColorValue;
   }
 
@@ -68,7 +60,7 @@ class _AccountScreenState extends State<AccountScreen> {
     widget.controller.updateUserProfile(
       _nameController.text,
       _selectedColor,
-      photoUrl: _photoUrlController.text.trim(),
+      photoUrl: widget.controller.currentUser.photoUrl,
     );
   }
 
@@ -228,24 +220,6 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _colorOptions.map((color) {
-              final isSelected = color == _selectedColor;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedColor = color),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(color),
-                  child: isSelected
-                      ? const Icon(Icons.check, color: Colors.white, size: 18)
-                      : null,
-                ),
-              );
-            }).toList(),
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
@@ -488,34 +462,66 @@ class _AccountScreenState extends State<AccountScreen> {
         final palette = AppPalette.of(context);
         return AlertDialog(
           title: const Text('Profile photo'),
-          content: TextField(
-            controller: _photoUrlController,
-            decoration: const InputDecoration(
-              labelText: 'Image URL',
-              hintText: 'https://...',
-            ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Choose from gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickProfileImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text('Take photo'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickProfileImage(ImageSource.camera);
+                },
+              ),
+            ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                _photoUrlController.clear();
                 Navigator.of(context).pop();
-                setState(() {});
+                widget.controller.updateUserProfile(
+                  _nameController.text,
+                  _selectedColor,
+                  photoUrl: '',
+                );
               },
               child: const Text('Remove'),
             ),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: palette.primary),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _saveProfile();
-                setState(() {});
-              },
-              child: const Text('Save'),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: palette.primary),
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
             ),
           ],
         );
       },
+    );
+  }
+
+  Future<void> _pickProfileImage(ImageSource source) async {
+    final picked = await _imagePicker.pickImage(
+      source: source,
+      maxWidth: 512,
+      imageQuality: 78,
+    );
+    if (picked == null) {
+      return;
+    }
+
+    final bytes = await picked.readAsBytes();
+    final photoUrl = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    widget.controller.updateUserProfile(
+      _nameController.text,
+      _selectedColor,
+      photoUrl: photoUrl,
     );
   }
 }
@@ -583,14 +589,13 @@ class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photoUrl = user.photoUrl;
+    final imageProvider = _imageProviderFromPhotoUrl(photoUrl);
     return CircleAvatar(
       radius: radius,
       backgroundColor: Color(selectedColor),
       foregroundColor: Colors.white,
-      backgroundImage: photoUrl == null || photoUrl.isEmpty
-          ? null
-          : NetworkImage(photoUrl),
-      child: photoUrl == null || photoUrl.isEmpty
+      backgroundImage: imageProvider,
+      child: imageProvider == null
           ? Text(
               user.initials,
               style: TextStyle(
@@ -600,6 +605,20 @@ class _ProfileAvatar extends StatelessWidget {
             )
           : null,
     );
+  }
+
+  ImageProvider? _imageProviderFromPhotoUrl(String? photoUrl) {
+    if (photoUrl == null || photoUrl.isEmpty) {
+      return null;
+    }
+    if (photoUrl.startsWith('data:image')) {
+      final commaIndex = photoUrl.indexOf(',');
+      if (commaIndex == -1) {
+        return null;
+      }
+      return MemoryImage(base64Decode(photoUrl.substring(commaIndex + 1)));
+    }
+    return NetworkImage(photoUrl);
   }
 }
 
