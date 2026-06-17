@@ -72,16 +72,18 @@ class AuthRepository {
       _firebaseReady = false;
     }
 
-    try {
-      await GoogleSignIn.instance.initialize(
-        clientId: kIsWeb && _googleWebClientId.isNotEmpty
-            ? _googleWebClientId
-            : null,
-      );
-      _googleReady = true;
-    } catch (error) {
-      debugPrint('Google Sign-In is not configured yet: $error');
-      _googleReady = false;
+    if (kIsWeb) {
+      _googleReady = _firebaseReady;
+    } else {
+      try {
+        await GoogleSignIn.instance.initialize(
+          clientId: _googleWebClientId.isNotEmpty ? _googleWebClientId : null,
+        );
+        _googleReady = true;
+      } catch (error) {
+        debugPrint('Google Sign-In is not configured yet: $error');
+        _googleReady = false;
+      }
     }
   }
 
@@ -140,6 +142,30 @@ class AuthRepository {
     }
 
     try {
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider();
+        final userCredential = await FirebaseAuth.instance.signInWithPopup(
+          provider,
+        );
+        final user = userCredential.user;
+        if (user == null) {
+          return const AuthResult.failure(
+            'Google sign-in did not return a user.',
+          );
+        }
+
+        final session = UserSession(
+          id: user.uid,
+          displayName: user.displayName ?? 'Player',
+          email: user.email,
+          avatarColorValue: 0xFF0F8B6B,
+          isGuest: false,
+          photoUrl: user.photoURL,
+        );
+        await saveUserProfile(session);
+        return AuthResult.success(session);
+      }
+
       final googleUser = await GoogleSignIn.instance.authenticate();
       final googleAuth = googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
