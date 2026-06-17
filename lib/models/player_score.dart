@@ -10,6 +10,7 @@ class PlayerScore {
     required this.totalScored,
     required this.turns,
     required this.isWinner,
+    this.stats = const {},
   });
 
   final String? userId;
@@ -19,6 +20,7 @@ class PlayerScore {
   final int totalScored;
   final List<List<DartHit>> turns;
   final bool isWinner;
+  final Map<String, int> stats;
 
   bool get isRegisteredUser => userId != null && userId!.isNotEmpty;
 
@@ -113,6 +115,7 @@ class PlayerScore {
     int? totalScored,
     List<List<DartHit>>? turns,
     bool? isWinner,
+    Map<String, int>? stats,
   }) {
     return PlayerScore(
       userId: userId ?? this.userId,
@@ -122,6 +125,7 @@ class PlayerScore {
       totalScored: totalScored ?? this.totalScored,
       turns: turns ?? this.turns,
       isWinner: isWinner ?? this.isWinner,
+      stats: stats ?? this.stats,
     );
   }
 }

@@ -994,6 +994,41 @@ class GameStateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void applySportAction({
+    required String label,
+    int scoreDelta = 0,
+    String? statKey,
+    int statDelta = 1,
+    bool endsTurn = false,
+  }) {
+    if (_players.isEmpty || isDartsGame) {
+      return;
+    }
+
+    final player = currentPlayer;
+    final nextStats = Map<String, int>.from(player.stats);
+    if (statKey != null) {
+      nextStats[statKey] = ((nextStats[statKey] ?? 0) + statDelta).clamp(
+        0,
+        999999,
+      );
+    }
+    final nextScore = (player.totalScored + scoreDelta).clamp(0, 999999);
+    _players[_currentPlayerIndex] = player.copyWith(
+      remaining: nextScore,
+      totalScored: nextScore,
+      stats: nextStats,
+    );
+    _matchMessage = scoreDelta == 0
+        ? '${player.name}: $label'
+        : '${player.name}: $label ($nextScore)';
+    if (endsTurn && _players.length > 1) {
+      _currentPlayerIndex = (_currentPlayerIndex + 1) % _players.length;
+    }
+    _syncLiveMatch();
+    notifyListeners();
+  }
+
   void advanceGenericTurn() {
     if (_players.isEmpty || isDartsGame) {
       return;
@@ -1241,6 +1276,7 @@ class GameStateController extends ChangeNotifier {
       'avatarColorValue': player.avatarColorValue,
       'remaining': player.remaining,
       'totalScored': player.totalScored,
+      'stats': player.stats,
       'isWinner': player.isWinner,
       'turns': player.turns
           .map((turn) => turn.map(_hitToMap).toList())
@@ -1281,6 +1317,7 @@ class GameStateController extends ChangeNotifier {
       ),
       remaining: _intFromValue(value['remaining']),
       totalScored: _intFromValue(value['totalScored']),
+      stats: _statsFromMap(value['stats']),
       turns: _asList(value['turns'])
           .map(
             (turn) => _asList(turn)
@@ -1291,6 +1328,15 @@ class GameStateController extends ChangeNotifier {
           .toList(),
       isWinner: value['isWinner'] == true,
     );
+  }
+
+  Map<String, int> _statsFromMap(Object? value) {
+    if (value is! Map) {
+      return const {};
+    }
+    return Map<String, dynamic>.from(
+      value,
+    ).map((key, value) => MapEntry(key, _intFromValue(value)));
   }
 
   void _mergeMembersIntoPlayers(Object? membersValue) {

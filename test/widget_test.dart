@@ -171,6 +171,21 @@ void main() {
     expect(gameNames.contains('Beer Pong'), isTrue);
   });
 
+  test('provides sport specific actions for every game preset', () {
+    for (final game in sportGames) {
+      expect(game.status, SportGameStatus.ready, reason: game.id);
+      expect(sportActionsFor(game.id), isNotEmpty, reason: game.id);
+    }
+
+    final footballActions = sportActionsFor(
+      'football',
+    ).map((action) => action.id).toSet();
+    expect(footballActions.contains('goal'), isTrue);
+    expect(footballActions.contains('yellow-card'), isTrue);
+    expect(footballActions.contains('red-card'), isTrue);
+    expect(footballActions.contains('foul'), isTrue);
+  });
+
   test('provides supported app translations', () {
     expect(
       AppLocalizations.supportedLocales.map((locale) => locale.languageCode),

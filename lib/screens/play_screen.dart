@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/game_settings.dart';
 import '../models/game_state_controller.dart';
+import '../models/player_score.dart';
 import '../models/sport_game.dart';
 import '../theme/app_palette.dart';
 import '../widgets/dartboard.dart';
@@ -98,6 +99,7 @@ class _PlayScreenState extends State<PlayScreen> {
     final palette = AppPalette.of(context);
     final l10n = AppLocalizations.of(context);
     final hits = controller.currentTurn;
+    final sportActions = sportActionsFor(widget.game.id);
 
     final actionRow = controller.isDartsGame
         ? Row(
@@ -136,46 +138,29 @@ class _PlayScreenState extends State<PlayScreen> {
           )
         : Row(
             children: [
-              Expanded(
-                child: _ActionButton(
-                  onPressed: controller.players.isEmpty
-                      ? null
-                      : () => controller.adjustCurrentPlayerScore(-1),
-                  icon: Icons.remove,
-                  label: '-1',
+              for (int i = 0; i < sportActions.take(4).length; i++) ...[
+                Expanded(
+                  child: _ActionButton(
+                    onPressed: controller.players.isEmpty
+                        ? null
+                        : () {
+                            final action = sportActions[i];
+                            controller.applySportAction(
+                              label: action.label,
+                              scoreDelta: action.scoreDelta,
+                              statKey: action.statKey,
+                              statDelta: action.statDelta,
+                              endsTurn: action.endsTurn,
+                            );
+                          },
+                    icon: sportActions[i].icon,
+                    label: sportActions[i].label,
+                    filled: i == 0,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  onPressed: controller.players.isEmpty
-                      ? null
-                      : () => controller.adjustCurrentPlayerScore(1),
-                  icon: Icons.add,
-                  label: '+1',
-                  filled: true,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  onPressed: controller.players.isEmpty
-                      ? null
-                      : () => controller.adjustCurrentPlayerScore(5),
-                  icon: Icons.add_circle_outline,
-                  label: '+5',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ActionButton(
-                  onPressed: controller.players.length < 2
-                      ? null
-                      : controller.advanceGenericTurn,
-                  icon: Icons.skip_next,
-                  label: l10n.t('action.next'),
-                ),
-              ),
+                if (i != sportActions.take(4).length - 1)
+                  const SizedBox(width: 10),
+              ],
             ],
           );
 
@@ -195,7 +180,11 @@ class _PlayScreenState extends State<PlayScreen> {
                       currentTurn: hits,
                     ),
                   )
-                : _GenericSportPanel(game: widget.game, palette: palette),
+                : _GenericSportPanel(
+                    game: widget.game,
+                    controller: controller,
+                    palette: palette,
+                  ),
           ),
         ),
         const SizedBox(height: 14),
@@ -423,14 +412,24 @@ class _CurrentTurnHeader extends StatelessWidget {
 }
 
 class _GenericSportPanel extends StatelessWidget {
-  const _GenericSportPanel({required this.game, required this.palette});
+  const _GenericSportPanel({
+    required this.game,
+    required this.controller,
+    required this.palette,
+  });
 
   final SportGame game;
+  final GameStateController controller;
   final AppPalette palette;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final player = controller.currentPlayer;
+    final stats = player.stats.entries
+        .where((entry) => entry.value > 0)
+        .take(6)
+        .toList();
 
     return Container(
       width: double.infinity,
@@ -455,16 +454,61 @@ class _GenericSportPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            game.subtitle,
+            '${player.name} · Score ${player.totalScored}',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: palette.textMuted,
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(height: 16),
+          if (stats.isEmpty)
+            Text(
+              game.subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: palette.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final stat in stats)
+                  Chip(
+                    label: Text('${_statLabel(stat.key)} ${stat.value}'),
+                    backgroundColor: palette.surfaceMuted,
+                    side: BorderSide(color: palette.border),
+                    labelStyle: TextStyle(
+                      color: palette.text,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+              ],
+            ),
         ],
       ),
     );
+  }
+
+  String _statLabel(String key) {
+    final words = key
+        .replaceAllMapped(
+          RegExp('[A-Z]'),
+          (match) => ' ${match.group(0)!.toLowerCase()}',
+        )
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .toList();
+    if (words.isEmpty) {
+      return key;
+    }
+    return words
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 }
 
@@ -533,7 +577,7 @@ class _QuickScoreboardPanel extends StatelessWidget {
                           Text(
                             controller.isDartsGame
                                 ? 'Avg ${player.average.toStringAsFixed(1)} / Best ${player.highestTurnScore}'
-                                : 'Score ${player.totalScored}',
+                                : _sportStatsSummary(player),
                             style: TextStyle(
                               color: palette.textMuted,
                               fontWeight: FontWeight.w600,
@@ -573,6 +617,18 @@ class _QuickScoreboardPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _sportStatsSummary(PlayerScore player) {
+    final stats = player.stats.entries
+        .where((entry) => entry.value > 0)
+        .take(2)
+        .map((entry) => '${entry.key}: ${entry.value}')
+        .join(' · ');
+    if (stats.isEmpty) {
+      return 'Score ${player.totalScored}';
+    }
+    return 'Score ${player.totalScored} · $stats';
   }
 }
 
