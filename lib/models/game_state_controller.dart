@@ -1670,16 +1670,14 @@ class GameStateController extends ChangeNotifier {
       // Re-initialize score for existing players
       _players = _players
           .map(
-            (p) => PlayerScore(
-              userId: p.userId,
-              name: p.name,
-              avatarColorValue: p.avatarColorValue,
+            (p) => p.copyWith(
               remaining: _settings.mode == GameMode.x01
                   ? _settings.startingScore
                   : 0,
               totalScored: 0,
               turns: const [],
               isWinner: false,
+              stats: _persistentStatsForNewMatch(p.stats),
             ),
           )
           .toList();
@@ -1690,6 +1688,14 @@ class GameStateController extends ChangeNotifier {
     _matchMessage = null;
     _syncLiveMatch();
     notifyListeners();
+  }
+
+  Map<String, int> _persistentStatsForNewMatch(Map<String, int> stats) {
+    final wins = stats['wins'];
+    if (wins == null || wins <= 0) {
+      return const {};
+    }
+    return {'wins': wins};
   }
 
   @override
