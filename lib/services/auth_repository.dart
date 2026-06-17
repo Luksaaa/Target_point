@@ -226,6 +226,24 @@ class AuthRepository {
     return null;
   }
 
+  Future<Map<String, dynamic>?> fetchSportGroupName(
+    String sportId,
+    String normalizedName,
+  ) async {
+    if (!_firebaseReady) {
+      return null;
+    }
+
+    final snapshot = await _db
+        .child('sportGroupNames/$sportId/$normalizedName')
+        .get();
+    final value = snapshot.value;
+    if (value is Map) {
+      return Map<String, dynamic>.from(value);
+    }
+    return null;
+  }
+
   Stream<Map<String, dynamic>?> watchSession(String sessionId) {
     if (!_firebaseReady) {
       return const Stream.empty();
@@ -272,6 +290,23 @@ class AuthRepository {
       'sessionName': sessionName,
       'role': role,
       'updatedAt': ServerValue.timestamp,
+    });
+  }
+
+  Future<void> reserveSportGroupName({
+    required String sportId,
+    required String normalizedName,
+    required String sessionId,
+    required String ownerUserId,
+  }) async {
+    if (!_firebaseReady || ownerUserId == 'guest') {
+      return;
+    }
+
+    await _db.child('sportGroupNames/$sportId/$normalizedName').set({
+      'sessionId': sessionId,
+      'ownerUserId': ownerUserId,
+      'createdAt': ServerValue.timestamp,
     });
   }
 

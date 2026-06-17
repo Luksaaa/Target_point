@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
+import '../models/player_score.dart';
 import '../theme/app_palette.dart';
 import '../widgets/profile_dialog.dart';
 
@@ -209,6 +210,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _confirmRemovePlayer(PlayerScore player) {
+    final palette = AppPalette.of(context);
+    final isRegisteredGroupMember = player.userId != null;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: const Text('Remove player?'),
+        content: Text(
+          isRegisteredGroupMember
+              ? 'Remove ${player.name} from this group and lineup?'
+              : 'Remove ${player.name} from this lineup?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Cancel', style: TextStyle(color: palette.textMuted)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: palette.primary),
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.controller.removeGroupPlayer(player);
+            },
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -389,6 +421,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 itemBuilder: (context, index) {
                   final player = players[index];
                   final isOwner = widget.controller.isGroupOwner(player);
+                  final canDelete =
+                      player.userId == null ||
+                      (widget.controller.canManageGroupMembers && !isOwner);
 
                   return Card(
                     key: ValueKey(player.name),
@@ -434,8 +469,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Icons.delete_outline,
                               color: palette.textMuted,
                             ),
-                            onPressed: players.length > 1
-                                ? () => widget.controller.deletePlayer(index)
+                            onPressed: players.length > 1 && canDelete
+                                ? () => _confirmRemovePlayer(player)
                                 : null,
                           ),
                           ReorderableDragStartListener(
@@ -621,62 +656,6 @@ class _GroupPanel extends StatelessWidget {
                   ),
                 ],
               ),
-              if (controller.groupMembers.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  'Members',
-                  style: TextStyle(
-                    color: palette.textMuted,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                ...controller.groupMembers.map(
-                  (member) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 15,
-                          backgroundColor: member.isOwner
-                              ? palette.primary
-                              : palette.surfaceMuted,
-                          foregroundColor: member.isOwner
-                              ? Colors.white
-                              : palette.text,
-                          child: Text(
-                            member.displayName.substring(0, 1).toUpperCase(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            member.displayName,
-                            style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (member.isOwner)
-                          Text(
-                            'Admin',
-                            style: TextStyle(
-                              color: palette.primary,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 12,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
             ],
             const SizedBox(height: 12),
             Wrap(
@@ -690,6 +669,7 @@ class _GroupPanel extends StatelessWidget {
                     hintText: 'Group name',
                     controller: sessionNameController,
                     actionLabel: 'Create',
+                    maxLength: 16,
                     onSubmit: controller.createCloudSession,
                   ),
                   icon: const Icon(Icons.add_link, size: 18),
@@ -728,6 +708,7 @@ class _GroupPanel extends StatelessWidget {
     required TextEditingController controller,
     required String actionLabel,
     required Future<void> Function(String value) onSubmit,
+    int? maxLength,
   }) {
     controller.clear();
     showDialog<void>(
@@ -739,6 +720,7 @@ class _GroupPanel extends StatelessWidget {
             controller: controller,
             hintText: hintText,
             palette: palette,
+            maxLength: maxLength,
           ),
           actions: [
             TextButton(
@@ -765,11 +747,13 @@ class _SessionTextField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     required this.palette,
+    this.maxLength,
   });
 
   final TextEditingController controller;
   final String hintText;
   final AppPalette palette;
+  final int? maxLength;
 
   @override
   Widget build(BuildContext context) {
@@ -777,6 +761,7 @@ class _SessionTextField extends StatelessWidget {
       controller: controller,
       minLines: 1,
       maxLines: 1,
+      maxLength: maxLength,
       decoration: InputDecoration(
         hintText: hintText,
         isDense: true,

@@ -105,7 +105,8 @@ class GameStateController extends ChangeNotifier {
 
   String? _liveMatchId;
   String? get liveMatchId => _liveMatchId;
-  String? get activeSessionId => _liveMatchId;
+  String? _activeGroupCode;
+  String? get activeSessionId => _activeGroupCode ?? _liveMatchId;
 
   bool _isLiveHost = false;
   bool get isLiveHost => _isLiveHost;
@@ -124,6 +125,52 @@ class GameStateController extends ChangeNotifier {
   bool isGroupOwner(PlayerScore player) {
     final userId = player.userId;
     return userId != null && userId == _liveHostUserId;
+  }
+
+  bool get canManageGroupMembers {
+    return !_currentUser.isGuest &&
+        _liveHostUserId != null &&
+        _currentUser.id == _liveHostUserId;
+  }
+
+  List<PlayerScore> _dedupedPlayers() {
+    final byUserId = <String, PlayerScore>{};
+    final localPlayers = <PlayerScore>[];
+
+    for (final player in _players) {
+      final userId = player.userId;
+      if (userId == null || userId.isEmpty) {
+        localPlayers.add(player);
+        continue;
+      }
+
+      final existing = byUserId[userId];
+      if (existing == null) {
+        byUserId[userId] = player;
+        continue;
+      }
+
+      final preferredName =
+          player.name.trim().length >= existing.name.trim().length
+          ? player.name
+          : existing.name;
+      byUserId[userId] = player.copyWith(
+        name: preferredName,
+        remaining: player.remaining,
+        totalScored: player.totalScored,
+      );
+    }
+
+    final merged = [...byUserId.values, ...localPlayers];
+    merged.sort((a, b) {
+      final aOwner = isGroupOwner(a);
+      final bOwner = isGroupOwner(b);
+      if (aOwner != bOwner) {
+        return aOwner ? -1 : 1;
+      }
+      return a.name.compareTo(b.name);
+    });
+    return merged;
   }
 
   void changeTab(int index) {
@@ -195,7 +242,7 @@ class GameStateController extends ChangeNotifier {
 
   // Active match state
   List<PlayerScore> _players = [];
-  List<PlayerScore> get players => _players;
+  List<PlayerScore> get players => _dedupedPlayers();
 
   final List<DartHit> _currentTurn = [];
   List<DartHit> get currentTurn => _currentTurn;
@@ -376,6 +423,7 @@ class GameStateController extends ChangeNotifier {
     }
 
     _liveMatchId = null;
+    _activeGroupCode = null;
     _activeSessionName = '';
     _isLiveHost = false;
     _liveHostUserId = null;
@@ -392,15 +440,39 @@ class GameStateController extends ChangeNotifier {
     }
 
     final trimmed = sessionName.trim();
-    final safeName = trimmed.isEmpty ? '$gameName session' : trimmed;
-    final sessionId = await _generateAvailableGroupCode();
+    if (trimmed.isEmpty) {
+      _liveMatchMessage = 'Group name is required.';
+      notifyListeners();
+      return;
+    }
+    if (trimmed.length > 16) {
+      _liveMatchMessage = 'Group name can have max 16 characters.';
+      notifyListeners();
+      return;
+    }
+
+    final normalizedName = _normalizeGroupName(trimmed);
+    final existingName = await _authRepository.fetchSportGroupName(
+      gameId,
+      normalizedName,
+    );
+    if (existingName != null) {
+      _liveMatchMessage = 'Group name already exists for $gameName.';
+      notifyListeners();
+      return;
+    }
+
+    final safeName = trimmed;
+    final groupCode = await _generateAvailableGroupCode();
+    final sessionId = _sessionIdFromGroupCode(groupCode);
 
     await _liveMatchSubscription?.cancel();
     _liveMatchId = sessionId;
+    _activeGroupCode = groupCode;
     _activeSessionName = safeName;
     _isLiveHost = true;
     _liveHostUserId = _currentUser.id;
-    _liveMatchMessage = 'Created group $sessionId.';
+    _liveMatchMessage = 'Created group $groupCode.';
     _ensureCurrentUserParticipant();
     _subscribeToLiveMatch(sessionId);
     await _authRepository.addUserSession(
@@ -410,12 +482,19 @@ class GameStateController extends ChangeNotifier {
       sessionName: safeName,
       role: 'owner',
     );
+    await _authRepository.reserveSportGroupName(
+      sportId: gameId,
+      normalizedName: normalizedName,
+      sessionId: sessionId,
+      ownerUserId: _currentUser.id,
+    );
     await _syncLiveMatch();
     notifyListeners();
   }
 
   Future<void> joinCloudSession(String sessionId) async {
-    final trimmed = sessionId.trim().toUpperCase();
+    final groupCode = sessionId.trim().toUpperCase();
+    final trimmed = _sessionIdFromGroupCode(groupCode);
     if (trimmed.isEmpty) {
       return;
     }
@@ -434,6 +513,7 @@ class GameStateController extends ChangeNotifier {
 
     await _liveMatchSubscription?.cancel();
     _liveMatchId = trimmed;
+    _activeGroupCode = groupCode;
     _activeSessionName =
         payload['sessionName'] as String? ??
         payload['gameName'] as String? ??
@@ -460,6 +540,7 @@ class GameStateController extends ChangeNotifier {
     await _liveMatchSubscription?.cancel();
     _liveMatchSubscription = null;
     _liveMatchId = null;
+    _activeGroupCode = null;
     _isLiveHost = false;
     _liveHostUserId = null;
     _groupMembers.clear();
@@ -544,6 +625,7 @@ class GameStateController extends ChangeNotifier {
   Map<String, Object?> _livePayload() {
     return {
       'id': _liveMatchId,
+      'groupCode': _activeGroupCode,
       'sessionName': _activeSessionName,
       'gameId': gameId,
       'gameName': gameName,
@@ -571,6 +653,7 @@ class GameStateController extends ChangeNotifier {
       final membersValue = payload['members'];
       final turnValue = payload['currentTurn'];
       _liveMatchId = payload['id'] as String? ?? _liveMatchId;
+      _activeGroupCode = payload['groupCode'] as String? ?? _activeGroupCode;
       _activeSessionName =
           payload['sessionName'] as String? ?? _activeSessionName;
       _liveHostUserId =
@@ -703,6 +786,10 @@ class GameStateController extends ChangeNotifier {
     if (_players.length <= 1) return; // Must have at least 1 player
 
     final removedPlayer = _players.removeAt(index);
+    final removedUserId = removedPlayer.userId;
+    if (removedUserId != null) {
+      _groupMembers.remove(removedUserId);
+    }
     if (_currentPlayerIndex >= _players.length) {
       _currentPlayerIndex = 0;
     }
@@ -710,6 +797,19 @@ class GameStateController extends ChangeNotifier {
     _matchMessage = 'Removed ${removedPlayer.name} from current match.';
     _syncLiveMatch();
     notifyListeners();
+  }
+
+  void removeGroupPlayer(PlayerScore player) {
+    final index = _players.indexWhere((candidate) {
+      if (player.userId != null) {
+        return candidate.userId == player.userId;
+      }
+      return candidate.name == player.name;
+    });
+    if (index == -1) {
+      return;
+    }
+    deletePlayer(index);
   }
 
   void reorderPlayers(int oldIndex, int newIndex) {
@@ -1138,6 +1238,20 @@ class GameStateController extends ChangeNotifier {
         continue;
       }
 
+      final sameNameIndex = _players.indexWhere(
+        (player) =>
+            player.userId == null &&
+            player.name.trim().toLowerCase() ==
+                displayName.trim().toLowerCase(),
+      );
+      if (sameNameIndex != -1) {
+        _players[sameNameIndex] = _players[sameNameIndex].copyWith(
+          userId: userId,
+          name: displayName,
+        );
+        continue;
+      }
+
       _players.add(
         PlayerScore(
           userId: userId,
@@ -1231,7 +1345,8 @@ class GameStateController extends ChangeNotifier {
   Future<String> _generateAvailableGroupCode() async {
     for (var attempt = 0; attempt < 16; attempt++) {
       final code = _randomGroupCode();
-      final existing = await _authRepository.fetchSession(code);
+      final sessionId = _sessionIdFromGroupCode(code);
+      final existing = await _authRepository.fetchSession(sessionId);
       if (existing == null) {
         return code;
       }
@@ -1248,6 +1363,14 @@ class GameStateController extends ChangeNotifier {
     ).join();
     final codeNumbers = List.generate(3, (_) => random.nextInt(10)).join();
     return '$codeLetters$codeNumbers';
+  }
+
+  String _sessionIdFromGroupCode(String groupCode) {
+    return '${gameId}_${groupCode.toUpperCase()}';
+  }
+
+  String _normalizeGroupName(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '-');
   }
 
   Map<String, Object?> _membersToMap() {
