@@ -456,25 +456,32 @@ class DartboardPainter extends CustomPainter {
       return;
     }
 
-    final alpha = 0.18 + (blinkValue * 0.34);
+    final alpha = 0.28 + (blinkValue * 0.42);
     final fill = Paint()
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFFFD369).withValues(alpha: alpha);
     final stroke = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(2, radius * 0.014)
+      ..strokeWidth = math.max(3, radius * 0.02)
+      ..color = const Color(0xFFFFD369).withValues(alpha: 0.75);
+    final glow = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(6, radius * 0.034)
       ..color = const Color(
         0xFFFFD369,
-      ).withValues(alpha: 0.55 + blinkValue * 0.35);
+      ).withValues(alpha: 0.18 + blinkValue * 0.22)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
 
     if (target.band == SegmentBand.bull) {
       canvas.drawCircle(center, radius * 0.055, fill);
+      canvas.drawCircle(center, radius * 0.055, glow);
       canvas.drawCircle(center, radius * 0.055, stroke);
       return;
     }
 
     if (target.band == SegmentBand.outerBull) {
       canvas.drawCircle(center, radius * 0.12, fill);
+      canvas.drawCircle(center, radius * 0.12, glow);
       canvas.drawCircle(center, radius * 0.12, stroke);
       return;
     }
@@ -507,6 +514,7 @@ class DartboardPainter extends CustomPainter {
       start: start,
       sweep: segmentSweep,
     );
+    canvas.drawPath(path, glow);
     canvas.drawPath(path, fill);
     canvas.drawPath(path, stroke);
   }

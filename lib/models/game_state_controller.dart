@@ -1535,10 +1535,7 @@ class GameStateController extends ChangeNotifier {
   }
 
   List<DartHit> _checkoutHits() {
-    final hits = <DartHit>[
-      const DartHit(label: 'BULL', score: 50, band: SegmentBand.bull),
-      const DartHit(label: '25', score: 25, band: SegmentBand.outerBull),
-    ];
+    final hits = <DartHit>[];
 
     for (var number = 20; number >= 1; number--) {
       hits.add(
@@ -1550,6 +1547,10 @@ class GameStateController extends ChangeNotifier {
         ),
       );
     }
+    hits.add(const DartHit(label: 'BULL', score: 50, band: SegmentBand.bull));
+    hits.add(
+      const DartHit(label: '25', score: 25, band: SegmentBand.outerBull),
+    );
     for (var number = 20; number >= 1; number--) {
       hits.add(
         DartHit(

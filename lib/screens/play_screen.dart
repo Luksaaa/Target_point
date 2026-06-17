@@ -319,6 +319,7 @@ class _CurrentTurnHeader extends StatelessWidget {
     final turnTotal = hits.fold(0, (total, hit) => total + hit.score);
     final isDarts = controller.isDartsGame;
     final checkoutHint = controller.checkoutHint;
+    final checkoutTargets = _checkoutTargets(checkoutHint);
     final canScore = controller.canScoreCurrentTurn;
 
     return Container(
@@ -379,6 +380,11 @@ class _CurrentTurnHeader extends StatelessWidget {
               children: List.generate(3, (index) {
                 final hit = index < hits.length ? hits[index] : null;
                 final isActive = index == hits.length && canScore;
+                final checkoutIndex = index - hits.length;
+                final checkoutTarget =
+                    checkoutIndex >= 0 && checkoutIndex < checkoutTargets.length
+                    ? checkoutTargets[checkoutIndex]
+                    : null;
                 return Expanded(
                   child: GestureDetector(
                     onTap: canScore
@@ -399,11 +405,11 @@ class _CurrentTurnHeader extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        hit?.label ?? 'Dart ${index + 1}',
+                        hit?.label ?? checkoutTarget ?? 'Dart ${index + 1}',
                         style: TextStyle(
-                          color: hit == null
-                              ? palette.textMuted
-                              : palette.primary,
+                          color: hit != null || checkoutTarget != null
+                              ? palette.primary
+                              : palette.textMuted,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -465,6 +471,18 @@ class _CurrentTurnHeader extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<String> _checkoutTargets(String? hint) {
+    if (hint == null || hint.trim().isEmpty) {
+      return const [];
+    }
+    return hint
+        .split('+')
+        .map((target) => target.trim())
+        .where((target) => target.isNotEmpty)
+        .take(3)
+        .toList(growable: false);
   }
 }
 
