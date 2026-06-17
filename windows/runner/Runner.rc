@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.targetpoint" "\0"
-            VALUE "FileDescription", "target_point" "\0"
+            VALUE "FileDescription", "Game hub" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "target_point" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.targetpoint. All rights reserved." "\0"
             VALUE "OriginalFilename", "target_point.exe" "\0"
-            VALUE "ProductName", "target_point" "\0"
+            VALUE "ProductName", "Game hub" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -1,16 +1,16 @@
-# Target Point Project Prompt
+# Game hub Project Prompt
 
 Use this document to understand the Flutter project before making changes. The user communicates in Croatian, but source code, identifiers, labels, and comments should stay in English.
 
 ## Product Direction
 
-Target Point is a real-time competitive scoring app. Darts is the first fully detailed game, but the app also supports a game hub with many sports, board games, card games, party competitions, and user-created activities.
+Game hub is a real-time competitive scoring app. Darts is the first fully detailed game, but the app also supports many sports, board games, card games, party competitions, and user-created activities.
 
 The application must not rely on fake default players. A match starts without hardcoded players. Users can add local players manually, and a signed-in Firebase user is added to the active leaderboard using their real profile.
 
 ## Current Architecture
 
-- `TargetPointApp` owns theme and locale state.
+- `GameHubApp` owns theme and locale state.
 - `RootScreen` starts on Darts.
 - `SportMatchScreen` owns one `GameStateController` per opened game.
 - `GameStateController` receives `gameId` and `gameName`.

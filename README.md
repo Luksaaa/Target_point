@@ -1,6 +1,6 @@
-# Target Point
+# Game hub
 
-Target Point je Flutter aplikacija za pracenje natjecateljskih aktivnosti. Pocetni ekran je Darts scorer, a iz aktivnosti se mogu otvoriti i druge igre poput stolnog tenisa, biljara, saha, Catana i custom natjecanja.
+Game hub je Flutter aplikacija za pracenje natjecateljskih aktivnosti. Pocetni ekran je Darts scorer, a iz aktivnosti se mogu otvoriti i druge igre poput stolnog tenisa, biljara, saha, Catana i custom natjecanja.
 
 ## Trenutne funkcije
 

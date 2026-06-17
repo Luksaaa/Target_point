@@ -444,7 +444,7 @@ class _AccountScreenState extends State<AccountScreen> {
         contentPadding: EdgeInsets.zero,
         leading: Icon(Icons.info_outline, color: palette.primary),
         title: Text(
-          'Target Point',
+          'Game hub',
           style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
         ),
         subtitle: Text(

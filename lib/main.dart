@@ -17,24 +17,24 @@ import 'models/sport_game.dart';
 import 'widgets/responsive_content.dart';
 
 void main() {
-  runApp(const TargetPointApp());
+  runApp(const GameHubApp());
 }
 
-class TargetPointApp extends StatefulWidget {
-  const TargetPointApp({super.key});
+class GameHubApp extends StatefulWidget {
+  const GameHubApp({super.key});
 
   @override
-  State<TargetPointApp> createState() => _TargetPointAppState();
+  State<GameHubApp> createState() => _GameHubAppState();
 }
 
-class _TargetPointAppState extends State<TargetPointApp> {
+class _GameHubAppState extends State<GameHubApp> {
   ThemeMode _themeMode = ThemeMode.system;
   Locale? _locale;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Target Point',
+      title: 'Game hub',
       debugShowCheckedModeBanner: false,
       themeMode: _themeMode,
       locale: _locale,
@@ -47,7 +47,7 @@ class _TargetPointAppState extends State<TargetPointApp> {
       ],
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
-      scrollBehavior: const _TargetPointScrollBehavior(),
+      scrollBehavior: const _GameHubScrollBehavior(),
       home: RootScreen(
         themeMode: _themeMode,
         locale: _locale,
@@ -145,8 +145,8 @@ class _TargetPointAppState extends State<TargetPointApp> {
   }
 }
 
-class _TargetPointScrollBehavior extends MaterialScrollBehavior {
-  const _TargetPointScrollBehavior();
+class _GameHubScrollBehavior extends MaterialScrollBehavior {
+  const _GameHubScrollBehavior();
 
   @override
   Set<PointerDeviceKind> get dragDevices => {

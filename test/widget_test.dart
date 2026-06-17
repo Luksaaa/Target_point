@@ -28,7 +28,7 @@ void main() {
       );
     }
 
-    await tester.pumpWidget(const TargetPointApp());
+    await tester.pumpWidget(const GameHubApp());
     await tester.pumpAndSettle();
   }
 
@@ -95,7 +95,7 @@ void main() {
     await pumpApp(tester);
     await addManualPlayer(tester, 'Player 1');
 
-    expect(find.text('Target Point'), findsOneWidget);
+    expect(find.text('Game hub'), findsOneWidget);
     expect(find.text('Player 1'), findsWidgets);
     expect(find.text('501'), findsWidgets);
 
@@ -162,7 +162,7 @@ void main() {
       brightness: Brightness.dark,
     );
 
-    expect(find.text('Target Point'), findsOneWidget);
+    expect(find.text('Game hub'), findsOneWidget);
     expect(find.byType(Dartboard), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

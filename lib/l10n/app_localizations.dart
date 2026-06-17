@@ -77,7 +77,7 @@ class _AppLocalizationsDelegate
 
 const _strings = {
   'en': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Choose a game',
     'hub.createActivity': 'Create activity',
     'hub.note':
@@ -134,7 +134,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'hr': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Odaberi igru',
     'hub.createActivity': 'Napravi aktivnost',
     'hub.note':
@@ -190,7 +190,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'de': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Spiel wählen',
     'hub.createActivity': 'Aktivität erstellen',
     'hub.note':
@@ -244,7 +244,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'es': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Elige un juego',
     'hub.createActivity': 'Crear actividad',
     'hub.note':
@@ -298,7 +298,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'fr': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Choisir un jeu',
     'hub.createActivity': 'Créer une activité',
     'hub.note':
@@ -352,7 +352,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'it': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'Scegli un gioco',
     'hub.createActivity': 'Crea attività',
     'hub.note':
@@ -406,7 +406,7 @@ const _strings = {
     'game.beer-pong.name': 'Beer Pong',
   },
   'ja': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': 'ゲームを選択',
     'hub.createActivity': 'アクティビティ作成',
     'hub.note': 'ダーツは利用できます。プリセットとカスタム活動は今後の採点ルール用モジュールです。',
@@ -459,7 +459,7 @@ const _strings = {
     'game.beer-pong.name': 'ビアポン',
   },
   'zh': {
-    'app.title': 'Target Point',
+    'app.title': 'Game hub',
     'hub.chooseGame': '选择游戏',
     'hub.createActivity': '创建活动',
     'hub.note': '飞镖已可使用。预设和自定义活动已作为模块准备，之后可加入计分规则。',

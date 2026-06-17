@@ -1,6 +1,6 @@
 {
-    "name": "target_point",
-    "short_name": "target_point",
+    "name": "Game hub",
+    "short_name": "Game hub",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
