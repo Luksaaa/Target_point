@@ -409,6 +409,7 @@ class _GenericSportPanel extends StatelessWidget {
                   return _SportEventCard(
                     event: event,
                     game: game,
+                    controller: controller,
                     palette: palette,
                   );
                 },
@@ -468,11 +469,13 @@ class _SportEventCard extends StatelessWidget {
   const _SportEventCard({
     required this.event,
     required this.game,
+    required this.controller,
     required this.palette,
   });
 
   final SportEvent event;
   final SportGame game;
+  final GameStateController controller;
   final AppPalette palette;
 
   @override
@@ -535,6 +538,13 @@ class _SportEventCard extends StatelessWidget {
               ],
             ),
           ),
+          if (controller.canManageGroupMembers)
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Remove event',
+              onPressed: () => controller.removeSportEvent(event.id),
+              icon: Icon(Icons.close, color: palette.textMuted, size: 18),
+            ),
         ],
       ),
     );

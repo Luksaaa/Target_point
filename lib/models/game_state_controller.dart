@@ -276,6 +276,26 @@ class GameStateController extends ChangeNotifier {
   String? _matchMessage;
   String? get matchMessage => _matchMessage;
 
+  int get _scoringPlayerIndex {
+    if (_players.isEmpty) {
+      return 0;
+    }
+    if (isLiveMatchActive &&
+        !_currentUser.isGuest &&
+        _currentUser.id != _liveHostUserId) {
+      final ownIndex = _players.indexWhere(
+        (player) => player.userId == _currentUser.id,
+      );
+      if (ownIndex != -1) {
+        return ownIndex;
+      }
+    }
+    if (_currentPlayerIndex >= _players.length) {
+      return 0;
+    }
+    return _currentPlayerIndex;
+  }
+
   PlayerScore get currentPlayer => _players.isEmpty
       ? const PlayerScore(
           name: 'No Players',
@@ -285,7 +305,7 @@ class GameStateController extends ChangeNotifier {
           turns: [],
           isWinner: false,
         )
-      : _players[_currentPlayerIndex];
+      : _players[_scoringPlayerIndex];
   bool get matchFinished => _players.isEmpty || _players.any((p) => p.isWinner);
 
   // Match history list
@@ -1012,9 +1032,10 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final player = currentPlayer;
+    final playerIndex = _scoringPlayerIndex;
+    final player = _players[playerIndex];
     final nextScore = (player.totalScored + delta).clamp(0, 999999);
-    _players[_currentPlayerIndex] = player.copyWith(
+    _players[playerIndex] = player.copyWith(
       remaining: nextScore,
       totalScored: nextScore,
     );
@@ -1034,7 +1055,8 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final player = currentPlayer;
+    final playerIndex = _scoringPlayerIndex;
+    final player = _players[playerIndex];
     final nextStats = Map<String, int>.from(player.stats);
     if (statKey != null) {
       nextStats[statKey] = ((nextStats[statKey] ?? 0) + statDelta).clamp(
@@ -1043,7 +1065,7 @@ class GameStateController extends ChangeNotifier {
       );
     }
     final nextScore = (player.totalScored + scoreDelta).clamp(0, 999999);
-    _players[_currentPlayerIndex] = player.copyWith(
+    _players[playerIndex] = player.copyWith(
       remaining: nextScore,
       totalScored: nextScore,
       stats: nextStats,
@@ -1070,6 +1092,47 @@ class GameStateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void removeSportEvent(String eventId) {
+    if (!canManageGroupMembers) {
+      return;
+    }
+    final eventIndex = _sportEvents.indexWhere((event) => event.id == eventId);
+    if (eventIndex == -1) {
+      return;
+    }
+
+    final event = _sportEvents.removeAt(eventIndex);
+    final playerIndex = _players.indexWhere(
+      (player) => player.name == event.playerName,
+    );
+    if (playerIndex != -1) {
+      final player = _players[playerIndex];
+      final nextStats = Map<String, int>.from(player.stats);
+      final statKey = event.statKey;
+      if (statKey != null) {
+        final nextValue = (nextStats[statKey] ?? 0) - 1;
+        if (nextValue <= 0) {
+          nextStats.remove(statKey);
+        } else {
+          nextStats[statKey] = nextValue;
+        }
+      }
+      final nextScore = (player.totalScored - event.scoreDelta).clamp(
+        0,
+        999999,
+      );
+      _players[playerIndex] = player.copyWith(
+        remaining: nextScore,
+        totalScored: nextScore,
+        stats: nextStats,
+      );
+    }
+
+    _matchMessage = 'Removed ${event.label} for ${event.playerName}.';
+    _syncLiveMatch();
+    notifyListeners();
+  }
+
   void advanceGenericTurn() {
     if (_players.isEmpty || isDartsGame) {
       return;
@@ -1086,7 +1149,8 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final player = currentPlayer;
+    final playerIndex = _scoringPlayerIndex;
+    final player = _players[playerIndex];
     final turnScore = _currentTurn.fold<int>(
       0,
       (total, hit) => total + hit.score,
@@ -1094,7 +1158,7 @@ class GameStateController extends ChangeNotifier {
     final nextTurns = [...player.turns, List<DartHit>.from(_currentTurn)];
 
     if (_settings.mode == GameMode.countUp) {
-      _players[_currentPlayerIndex] = player.copyWith(
+      _players[playerIndex] = player.copyWith(
         remaining: player.remaining + turnScore,
         totalScored: player.totalScored + turnScore,
         turns: nextTurns,
@@ -1116,7 +1180,7 @@ class GameStateController extends ChangeNotifier {
         (nextRemaining == 0 && !hasValidFinish);
 
     if (isBust) {
-      _players[_currentPlayerIndex] = player.copyWith(turns: nextTurns);
+      _players[playerIndex] = player.copyWith(turns: nextTurns);
       _matchMessage =
           '${player.name} busts. Score stays at ${player.remaining}.';
 
@@ -1130,7 +1194,7 @@ class GameStateController extends ChangeNotifier {
     }
 
     final isWinner = nextRemaining == 0;
-    _players[_currentPlayerIndex] = player.copyWith(
+    _players[playerIndex] = player.copyWith(
       remaining: nextRemaining,
       totalScored: player.totalScored + turnScore,
       turns: nextTurns,
