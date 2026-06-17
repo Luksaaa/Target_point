@@ -31,7 +31,13 @@
       "$sessionId": {
         ".read": "auth != null",
         ".write": "auth != null && (!data.exists() ? newData.child('ownerUserId').val() === auth.uid && newData.child('members').child(auth.uid).child('role').val() === 'owner' : data.child('members').child(auth.uid).exists() && newData.child('updatedByUserId').val() === auth.uid)",
-        ".validate": "newData.hasChildren(['id', 'sessionName', 'sportId', 'sportName', 'ownerUserId', 'players', 'participants', 'members', 'updatedByUserId'])"
+        ".validate": "newData.hasChildren(['id', 'sessionName', 'sportId', 'sportName', 'ownerUserId', 'players', 'participants', 'members', 'updatedByUserId'])",
+        "members": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('sessions').child($sessionId).exists() && (!data.exists() ? newData.child('role').val() === 'participant' : data.child('role').val() !== 'owner')",
+            ".validate": "newData.hasChildren(['role', 'displayName', 'joinedAt'])"
+          }
+        }
       }
     },
     "sharedPlayerGroups": {

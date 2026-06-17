@@ -559,20 +559,27 @@ class GameStateController extends ChangeNotifier {
         '$gameName session';
     _applyLivePayload(payload);
     _ensureCurrentUserParticipant();
-    _subscribeToLiveMatch(trimmed);
-    await _authRepository.addSessionMember(
-      sessionId: trimmed,
-      user: _currentUser,
-      role: 'participant',
-    );
-    await _authRepository.addUserSession(
-      userId: _currentUser.id,
-      sessionId: trimmed,
-      sportId: gameId,
-      sessionName: _activeSessionName,
-      role: 'participant',
-    );
-    await _syncLiveMatch();
+    try {
+      await _authRepository.addSessionMember(
+        sessionId: trimmed,
+        user: _currentUser,
+        role: 'participant',
+      );
+      await _authRepository.addUserSession(
+        userId: _currentUser.id,
+        sessionId: trimmed,
+        sportId: gameId,
+        sessionName: _activeSessionName,
+        role: 'participant',
+      );
+      _subscribeToLiveMatch(trimmed);
+      await _syncLiveMatch();
+      _liveMatchMessage = 'Joined group $groupCode.';
+    } catch (error) {
+      await leaveLiveMatch();
+      _liveMatchMessage = 'Could not join group: $error';
+    }
+    notifyListeners();
   }
 
   Future<void> leaveLiveMatch() async {
