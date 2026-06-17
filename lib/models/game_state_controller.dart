@@ -50,6 +50,26 @@ class GroupMember {
   bool get isOwner => role == 'owner';
 }
 
+class SportEvent {
+  const SportEvent({
+    required this.id,
+    required this.playerName,
+    required this.label,
+    required this.scoreDelta,
+    required this.totalScore,
+    required this.createdAt,
+    this.statKey,
+  });
+
+  final String id;
+  final String playerName;
+  final String label;
+  final int scoreDelta;
+  final int totalScore;
+  final DateTime createdAt;
+  final String? statKey;
+}
+
 class GameStateController extends ChangeNotifier {
   GameStateController({required this.gameId, required this.gameName}) {
     _initializeServices();
@@ -244,6 +264,8 @@ class GameStateController extends ChangeNotifier {
   // Active match state
   List<PlayerScore> _players = [];
   List<PlayerScore> get players => _dedupedPlayers();
+  final List<SportEvent> _sportEvents = [];
+  List<SportEvent> get sportEvents => List.unmodifiable(_sportEvents);
 
   final List<DartHit> _currentTurn = [];
   List<DartHit> get currentTurn => _currentTurn;
@@ -690,6 +712,7 @@ class GameStateController extends ChangeNotifier {
       'settings': _settingsToMap(_settings),
       'players': _players.map(_playerToMap).toList(),
       'participants': _players.map(_playerToParticipantMap).toList(),
+      'sportEvents': _sportEvents.map(_sportEventToMap).toList(),
       'currentTurn': _currentTurn.map(_hitToMap).toList(),
       'currentPlayerIndex': _currentPlayerIndex,
       'matchMessage': _matchMessage,
@@ -698,9 +721,7 @@ class GameStateController extends ChangeNotifier {
 
   void _applyLivePayload(Map<String, dynamic> payload) {
     final remoteUpdatedAt = _intFromValue(payload['clientUpdatedAt']);
-    if (remoteUpdatedAt != 0 &&
-        remoteUpdatedAt < _lastLocalSyncAt &&
-        _currentTurn.isNotEmpty) {
+    if (remoteUpdatedAt != 0 && remoteUpdatedAt < _lastLocalSyncAt) {
       return;
     }
 
@@ -710,6 +731,7 @@ class GameStateController extends ChangeNotifier {
       final playersValue = payload['players'];
       final membersValue = payload['members'];
       final turnValue = payload['currentTurn'];
+      final sportEventsValue = payload['sportEvents'];
       _liveMatchId = payload['id'] as String? ?? _liveMatchId;
       _activeGroupCode = payload['groupCode'] as String? ?? _activeGroupCode;
       _activeSessionName =
@@ -736,6 +758,13 @@ class GameStateController extends ChangeNotifier {
         ..addAll(
           _asList(turnValue).whereType<Map>().map(
             (value) => _hitFromMap(Map<String, dynamic>.from(value)),
+          ),
+        );
+      _sportEvents
+        ..clear()
+        ..addAll(
+          _asList(sportEventsValue).whereType<Map>().map(
+            (value) => _sportEventFromMap(Map<String, dynamic>.from(value)),
           ),
         );
       _currentPlayerIndex = _intFromValue(payload['currentPlayerIndex']);
@@ -1019,6 +1048,18 @@ class GameStateController extends ChangeNotifier {
       totalScored: nextScore,
       stats: nextStats,
     );
+    _sportEvents.insert(
+      0,
+      SportEvent(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        playerName: player.name,
+        label: label,
+        scoreDelta: scoreDelta,
+        totalScore: nextScore,
+        statKey: statKey,
+        createdAt: DateTime.now(),
+      ),
+    );
     _matchMessage = scoreDelta == 0
         ? '${player.name}: $label'
         : '${player.name}: $label ($nextScore)';
@@ -1235,6 +1276,7 @@ class GameStateController extends ChangeNotifier {
           .toList();
     }
     _currentTurn.clear();
+    _sportEvents.clear();
     _currentPlayerIndex = 0;
     _matchMessage = null;
     _syncLiveMatch();
@@ -1292,6 +1334,33 @@ class GameStateController extends ChangeNotifier {
       'isRegistered': player.isRegisteredUser,
       'role': player.userId == _liveHostUserId ? 'owner' : 'participant',
     };
+  }
+
+  Map<String, Object?> _sportEventToMap(SportEvent event) {
+    return {
+      'id': event.id,
+      'playerName': event.playerName,
+      'label': event.label,
+      'scoreDelta': event.scoreDelta,
+      'totalScore': event.totalScore,
+      'statKey': event.statKey,
+      'createdAt': event.createdAt.millisecondsSinceEpoch,
+    };
+  }
+
+  SportEvent _sportEventFromMap(Map<String, dynamic> value) {
+    final createdAt = _intFromValue(value['createdAt']);
+    return SportEvent(
+      id: value['id'] as String? ?? createdAt.toString(),
+      playerName: value['playerName'] as String? ?? 'Player',
+      label: value['label'] as String? ?? 'Event',
+      scoreDelta: _intFromValue(value['scoreDelta']),
+      totalScore: _intFromValue(value['totalScore']),
+      statKey: value['statKey'] as String?,
+      createdAt: createdAt == 0
+          ? DateTime.now()
+          : DateTime.fromMillisecondsSinceEpoch(createdAt),
+    );
   }
 
   PlayerScore _playerFromProfile(PlayerProfile profile) {

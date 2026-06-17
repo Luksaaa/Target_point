@@ -186,6 +186,23 @@ void main() {
     expect(footballActions.contains('foul'), isTrue);
   });
 
+  test('records sport events with player, action and total score', () {
+    final controller = GameStateController(
+      gameId: 'football',
+      gameName: 'Football',
+    );
+
+    controller.addPlayerProfile('Team A', 0xFF276EF1);
+    controller.applySportAction(label: 'Goal', scoreDelta: 1, statKey: 'goals');
+
+    expect(controller.currentPlayer.totalScored, 1);
+    expect(controller.currentPlayer.stats['goals'], 1);
+    expect(controller.sportEvents, hasLength(1));
+    expect(controller.sportEvents.first.playerName, 'Team A');
+    expect(controller.sportEvents.first.label, 'Goal');
+    expect(controller.sportEvents.first.totalScore, 1);
+  });
+
   test('provides supported app translations', () {
     expect(
       AppLocalizations.supportedLocales.map((locale) => locale.languageCode),

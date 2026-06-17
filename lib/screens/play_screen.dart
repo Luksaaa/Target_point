@@ -27,72 +27,6 @@ class PlayScreen extends StatefulWidget {
 class _PlayScreenState extends State<PlayScreen> {
   GameStateController get controller => widget.controller;
 
-  void _confirmSaveTurn(BuildContext context, AppPalette palette) {
-    final hits = controller.currentTurn;
-    if (hits.isEmpty || controller.matchFinished) return;
-
-    final turnTotal = hits.fold(0, (sum, hit) => sum + hit.score);
-    final hitsText = hits.map((hit) => hit.label).join(' / ');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: palette.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: palette.border),
-        ),
-        title: const Text('Save turn?'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              hitsText,
-              style: TextStyle(
-                color: palette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: palette.surfaceMuted,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: palette.border),
-              ),
-              child: Text(
-                'Total: $turnTotal',
-                style: TextStyle(
-                  color: palette.text,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              controller.undoLastHit();
-            },
-            child: const Text('Redo Last Dart'),
-          ),
-          FilledButton.icon(
-            onPressed: () {
-              Navigator.of(context).pop();
-              controller.commitTurn();
-            },
-            icon: const Icon(Icons.check, size: 18),
-            label: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -127,7 +61,7 @@ class _PlayScreenState extends State<PlayScreen> {
               Expanded(
                 child: _ActionButton(
                   onPressed: hits.isNotEmpty && !controller.matchFinished
-                      ? () => _confirmSaveTurn(context, palette)
+                      ? controller.commitTurn
                       : null,
                   icon: Icons.check,
                   label: l10n.t('action.saveTurn'),
@@ -430,6 +364,7 @@ class _GenericSportPanel extends StatelessWidget {
         .where((entry) => entry.value > 0)
         .take(6)
         .toList();
+    final events = controller.sportEvents.take(12).toList();
 
     return Container(
       width: double.infinity,
@@ -461,8 +396,25 @@ class _GenericSportPanel extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 16),
-          if (stats.isEmpty)
+          const SizedBox(height: 14),
+          if (events.isNotEmpty)
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: events.length,
+                separatorBuilder: (context, index) => const SizedBox(width: 10),
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  return _SportEventCard(
+                    event: event,
+                    game: game,
+                    palette: palette,
+                  );
+                },
+              ),
+            )
+          else if (stats.isEmpty)
             Text(
               game.subtitle,
               textAlign: TextAlign.center,
@@ -509,6 +461,83 @@ class _GenericSportPanel extends StatelessWidget {
     return words
         .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
         .join(' ');
+  }
+}
+
+class _SportEventCard extends StatelessWidget {
+  const _SportEventCard({
+    required this.event,
+    required this.game,
+    required this.palette,
+  });
+
+  final SportEvent event;
+  final SportGame game;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    final time =
+        '${event.createdAt.hour.toString().padLeft(2, '0')}:${event.createdAt.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      width: 210,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: palette.surfaceMuted,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: palette.border.withValues(alpha: 0.55)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: game.color.withValues(alpha: 0.2),
+            foregroundColor: game.color,
+            radius: 18,
+            child: Icon(game.icon, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.playerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: palette.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  event.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: palette.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '$time · Total ${event.totalScore}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: palette.primary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
