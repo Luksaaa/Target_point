@@ -660,6 +660,7 @@ class GameStateController extends ChangeNotifier {
     _isLiveHost = true;
     _liveHostUserId = _currentUser.id;
     _liveMatchMessage = 'Created group $groupCode.';
+    _startFreshGroupForCurrentUser();
     _ensureCurrentUserParticipant();
     final synced = await _syncLiveMatch();
     if (!synced) {
@@ -686,6 +687,29 @@ class GameStateController extends ChangeNotifier {
     }
     await _refreshUserGroups();
     notifyListeners();
+  }
+
+  void _startFreshGroupForCurrentUser() {
+    _groupMembers.clear();
+    _currentTurn.clear();
+    _sportEvents.clear();
+    _matchMessage = null;
+    _currentPlayerIndex = 0;
+    _clientRevision = 0;
+    _lastLocalSyncAt = 0;
+    _players = [
+      PlayerScore(
+        userId: _currentUser.id,
+        name: _currentUser.displayName,
+        avatarColorValue: _currentUser.avatarColorValue,
+        remaining: _settings.mode == GameMode.x01 && isDartsGame
+            ? _settings.startingScore
+            : 0,
+        totalScored: 0,
+        turns: const [],
+        isWinner: false,
+      ),
+    ];
   }
 
   Future<void> joinCloudSession(String sessionId) async {
