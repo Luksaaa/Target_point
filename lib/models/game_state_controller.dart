@@ -139,6 +139,8 @@ class GameStateController extends ChangeNotifier {
   String? _liveMatchMessage;
   String? get liveMatchMessage => _liveMatchMessage;
   int _lastLocalSyncAt = 0;
+  int _clientRevision = 0;
+  Future<void> _syncQueue = Future.value();
 
   bool get isLiveMatchActive => _liveMatchId != null;
   bool get isDartsGame => gameId == 'darts';
@@ -697,21 +699,29 @@ class GameStateController extends ChangeNotifier {
     });
   }
 
-  Future<bool> _syncLiveMatch() async {
+  Future<bool> _syncLiveMatch() {
     final matchId = _liveMatchId;
     if (matchId == null || _isApplyingRemoteState || _currentUser.isGuest) {
-      return false;
+      return Future.value(false);
     }
 
-    try {
-      _lastLocalSyncAt = DateTime.now().millisecondsSinceEpoch;
-      await _authRepository.saveSession(matchId, _livePayload());
-      return true;
-    } catch (error) {
-      _liveMatchMessage = 'Could not sync group: $error';
-      notifyListeners();
-      return false;
-    }
+    _lastLocalSyncAt = DateTime.now().millisecondsSinceEpoch;
+    _clientRevision += 1;
+    final payload = _livePayload();
+    final completer = Completer<bool>();
+
+    _syncQueue = _syncQueue.then((_) async {
+      try {
+        await _authRepository.saveSession(matchId, payload);
+        completer.complete(true);
+      } catch (error) {
+        _liveMatchMessage = 'Could not sync group: $error';
+        notifyListeners();
+        completer.complete(false);
+      }
+    });
+
+    return completer.future;
   }
 
   Map<String, Object?> _livePayload() {
@@ -727,6 +737,7 @@ class GameStateController extends ChangeNotifier {
       'ownerUserId': _liveHostUserId ?? _currentUser.id,
       'updatedByUserId': _currentUser.id,
       'clientUpdatedAt': _lastLocalSyncAt,
+      'clientRevision': _clientRevision,
       'status': matchFinished ? 'finished' : 'active',
       'members': _membersToMap(),
       'settings': _settingsToMap(_settings),
@@ -741,6 +752,10 @@ class GameStateController extends ChangeNotifier {
 
   void _applyLivePayload(Map<String, dynamic> payload) {
     final remoteUpdatedAt = _intFromValue(payload['clientUpdatedAt']);
+    final remoteRevision = _intFromValue(payload['clientRevision']);
+    if (remoteRevision != 0 && remoteRevision < _clientRevision) {
+      return;
+    }
     final hasRecentLocalWrite =
         _lastLocalSyncAt != 0 &&
         DateTime.now().millisecondsSinceEpoch - _lastLocalSyncAt < 10000;
@@ -764,6 +779,9 @@ class GameStateController extends ChangeNotifier {
           payload['hostUserId'] as String? ??
           payload['ownerUserId'] as String? ??
           _liveHostUserId;
+      if (remoteRevision > _clientRevision) {
+        _clientRevision = remoteRevision;
+      }
       _isLiveHost = _liveHostUserId == _currentUser.id;
 
       if (settingsValue is Map) {
