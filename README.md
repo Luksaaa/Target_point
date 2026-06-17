@@ -52,10 +52,19 @@ flutter build web --release
 
 Za Cloudflare Pages koristi:
 
-- Build command: `flutter build web --release`
+- Build command: `bash tools/cloudflare_build.sh`
 - Build output directory: `build/web`
 
 U `web/` su dodani `_headers` i `_redirects`, pa ih Flutter kopira u `build/web` tijekom web builda.
+
+Za Google login i Realtime Database na webu dodaj ove Cloudflare Pages environment variables iz Firebase Web app configa:
+
+- `FIREBASE_WEB_API_KEY`
+- `FIREBASE_WEB_APP_ID`
+- `FIREBASE_WEB_MESSAGING_SENDER_ID`
+- `FIREBASE_WEB_PROJECT_ID`
+- `FIREBASE_WEB_AUTH_DOMAIN`
+- `FIREBASE_WEB_STORAGE_BUCKET`
 
 ## Provjere
 

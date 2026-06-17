@@ -22,6 +22,21 @@ class AuthRepository {
   static const databaseUrl =
       'https://targetpoint-c57ff-default-rtdb.europe-west1.firebasedatabase.app/';
 
+  static const _webApiKey = String.fromEnvironment('FIREBASE_WEB_API_KEY');
+  static const _webAppId = String.fromEnvironment('FIREBASE_WEB_APP_ID');
+  static const _webMessagingSenderId = String.fromEnvironment(
+    'FIREBASE_WEB_MESSAGING_SENDER_ID',
+  );
+  static const _webProjectId = String.fromEnvironment(
+    'FIREBASE_WEB_PROJECT_ID',
+  );
+  static const _webAuthDomain = String.fromEnvironment(
+    'FIREBASE_WEB_AUTH_DOMAIN',
+  );
+  static const _webStorageBucket = String.fromEnvironment(
+    'FIREBASE_WEB_STORAGE_BUCKET',
+  );
+
   bool _firebaseReady = false;
   bool _googleReady = false;
 
@@ -30,7 +45,16 @@ class AuthRepository {
   Future<void> initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        if (kIsWeb) {
+          if (!_hasWebFirebaseConfig) {
+            throw StateError(
+              'Missing Firebase web config. Build with FIREBASE_WEB_* dart defines.',
+            );
+          }
+          await Firebase.initializeApp(options: _webFirebaseOptions);
+        } else {
+          await Firebase.initializeApp();
+        }
       }
       FirebaseDatabase.instanceFor(
         app: Firebase.app(),
@@ -49,6 +73,26 @@ class AuthRepository {
       debugPrint('Google Sign-In is not configured yet: $error');
       _googleReady = false;
     }
+  }
+
+  bool get _hasWebFirebaseConfig {
+    return _webApiKey.isNotEmpty &&
+        _webAppId.isNotEmpty &&
+        _webMessagingSenderId.isNotEmpty &&
+        _webProjectId.isNotEmpty &&
+        _webAuthDomain.isNotEmpty;
+  }
+
+  FirebaseOptions get _webFirebaseOptions {
+    return const FirebaseOptions(
+      apiKey: _webApiKey,
+      appId: _webAppId,
+      messagingSenderId: _webMessagingSenderId,
+      projectId: _webProjectId,
+      authDomain: _webAuthDomain,
+      databaseURL: databaseUrl,
+      storageBucket: _webStorageBucket,
+    );
   }
 
   Future<AuthResult> signInWithGoogle() async {
