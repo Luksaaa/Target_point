@@ -528,6 +528,7 @@ class _GroupPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final isGuest = controller.currentUser.isGuest;
     final activeSessionId = controller.activeSessionId;
+    final groups = controller.userGroups;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -579,9 +580,61 @@ class _GroupPanel extends StatelessWidget {
             ),
           ] else ...[
             const SizedBox(height: 8),
+            if (groups.isNotEmpty) ...[
+              SizedBox(
+                height: 46,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: groups.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final group = groups[index];
+                    final isActive = controller.liveMatchId == group.sessionId;
+                    return ChoiceChip(
+                      selected: isActive,
+                      showCheckmark: false,
+                      selectedColor: palette.primary,
+                      backgroundColor: palette.surfaceMuted,
+                      side: BorderSide(
+                        color: isActive
+                            ? palette.primary
+                            : palette.border.withValues(alpha: 0.65),
+                      ),
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            group.isOwner
+                                ? Icons.admin_panel_settings_outlined
+                                : Icons.groups_2_outlined,
+                            size: 16,
+                            color: isActive ? Colors.white : palette.textMuted,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            group.sessionName,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isActive ? Colors.white : palette.text,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      onSelected: (_) {
+                        controller.selectUserGroup(group.sessionId);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             Text(
               activeSessionId == null
-                  ? 'Create or join a group to sync this scoreboard.'
+                  ? groups.isEmpty
+                        ? 'Create or join a group to sync this scoreboard.'
+                        : 'Select a group above or create a new one.'
                   : controller.activeSessionName,
               style: TextStyle(
                 color: palette.textMuted,

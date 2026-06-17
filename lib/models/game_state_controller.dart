@@ -50,6 +50,22 @@ class GroupMember {
   bool get isOwner => role == 'owner';
 }
 
+class UserGameGroup {
+  const UserGameGroup({
+    required this.sessionId,
+    required this.groupCode,
+    required this.sessionName,
+    required this.role,
+  });
+
+  final String sessionId;
+  final String groupCode;
+  final String sessionName;
+  final String role;
+
+  bool get isOwner => role == 'owner';
+}
+
 class SportEvent {
   const SportEvent({
     required this.id,
@@ -137,6 +153,8 @@ class GameStateController extends ChangeNotifier {
   String _activeSessionName = 'Personal session';
   String get activeSessionName => _activeSessionName;
   final Map<String, Map<String, Object?>> _groupMembers = {};
+  final List<UserGameGroup> _userGroups = [];
+  List<UserGameGroup> get userGroups => List.unmodifiable(_userGroups);
 
   String? _liveMatchMessage;
   String? get liveMatchMessage => _liveMatchMessage;
@@ -350,6 +368,7 @@ class GameStateController extends ChangeNotifier {
       if (result.isSuccess) {
         _currentUser = result.session!;
         _accountMessage = 'Signed in as ${_currentUser.displayName}.';
+        await _refreshUserGroups();
         await _activateRealtimeMatchForCurrentUser();
         if (!isLiveMatchActive) {
           _ensureCurrentUserParticipant();
@@ -371,6 +390,7 @@ class GameStateController extends ChangeNotifier {
     _players.clear();
     _profiles.clear();
     _following.clear();
+    _userGroups.clear();
     _matchHistory.clear();
     _currentTurn.clear();
     _currentPlayerIndex = 0;
@@ -484,29 +504,21 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final lastSession = await _authRepository.fetchLatestUserSessionForSport(
-      userId: _currentUser.id,
-      sportId: gameId,
-    );
+    await _refreshUserGroups();
+    final lastSession = _userGroups.isNotEmpty
+        ? <String, Object?>{
+            'sessionId': _userGroups.first.sessionId,
+            'sessionName': _userGroups.first.sessionName,
+            'role': _userGroups.first.role,
+          }
+        : await _authRepository.fetchLatestUserSessionForSport(
+            userId: _currentUser.id,
+            sportId: gameId,
+          );
     final lastSessionId = lastSession?['sessionId'] as String?;
     if (lastSessionId != null && lastSessionId.isNotEmpty) {
-      final payload = await _authRepository.fetchSession(lastSessionId);
-      if (payload != null) {
-        await _liveMatchSubscription?.cancel();
-        _liveMatchId = lastSessionId;
-        final sessionParts = lastSessionId.split('_');
-        _activeGroupCode =
-            payload['groupCode'] as String? ??
-            (sessionParts.isEmpty ? lastSessionId : sessionParts.last);
-        _activeSessionName =
-            payload['sessionName'] as String? ??
-            lastSession?['sessionName'] as String? ??
-            '$gameName group';
-        _applyLivePayload(payload);
-        _ensureCurrentUserParticipant();
-        _subscribeToLiveMatch(lastSessionId);
-        _liveMatchMessage = 'Group loaded.';
-        notifyListeners();
+      final loaded = await selectUserGroup(lastSessionId, notify: false);
+      if (loaded) {
         return;
       }
     }
@@ -519,6 +531,87 @@ class GameStateController extends ChangeNotifier {
     _groupMembers.clear();
     _liveMatchMessage = 'Create or join a group to sync this match.';
     notifyListeners();
+  }
+
+  Future<void> _refreshUserGroups() async {
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      _userGroups.clear();
+      return;
+    }
+
+    final sessions = await _authRepository.fetchUserSessionsForSport(
+      userId: _currentUser.id,
+      sportId: gameId,
+    );
+    _userGroups
+      ..clear()
+      ..addAll(
+        sessions
+            .map((entry) {
+              final sessionId = entry['sessionId'] as String? ?? '';
+              final sessionParts = sessionId.split('_');
+              final fallbackCode = sessionParts.isEmpty
+                  ? sessionId
+                  : sessionParts.last;
+              return UserGameGroup(
+                sessionId: sessionId,
+                groupCode: (entry['groupCode'] as String? ?? fallbackCode)
+                    .toUpperCase(),
+                sessionName:
+                    entry['sessionName'] as String? ??
+                    (fallbackCode.isEmpty ? '$gameName group' : fallbackCode),
+                role: entry['role'] as String? ?? 'participant',
+              );
+            })
+            .where((group) => group.sessionId.isNotEmpty),
+      );
+  }
+
+  Future<bool> selectUserGroup(String sessionId, {bool notify = true}) async {
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      return false;
+    }
+
+    final normalizedSessionId = sessionId.contains('_')
+        ? sessionId
+        : _sessionIdFromGroupCode(sessionId);
+    if (normalizedSessionId == _liveMatchId) {
+      return true;
+    }
+
+    final payload = await _authRepository.fetchSession(normalizedSessionId);
+    if (payload == null) {
+      _liveMatchMessage = 'Group not found.';
+      if (notify) {
+        notifyListeners();
+      }
+      return false;
+    }
+
+    await _liveMatchSubscription?.cancel();
+    _currentTurn.clear();
+    _liveMatchId = normalizedSessionId;
+    final sessionParts = normalizedSessionId.split('_');
+    _activeGroupCode =
+        payload['groupCode'] as String? ??
+        (sessionParts.isEmpty ? normalizedSessionId : sessionParts.last);
+    final matchingGroupName = _userGroups
+        .where((group) => group.sessionId == normalizedSessionId)
+        .map((group) => group.sessionName)
+        .cast<String?>()
+        .firstWhere((name) => name != null, orElse: () => null);
+    _activeSessionName =
+        payload['sessionName'] as String? ??
+        matchingGroupName ??
+        '$gameName group';
+    _applyLivePayload(payload);
+    _ensureCurrentUserParticipant();
+    _subscribeToLiveMatch(normalizedSessionId);
+    _liveMatchMessage = 'Group loaded.';
+    if (notify) {
+      notifyListeners();
+    }
+    return true;
   }
 
   Future<void> createCloudSession(String sessionName) async {
@@ -590,6 +683,7 @@ class GameStateController extends ChangeNotifier {
     } catch (_) {
       _liveMatchMessage = 'Created group $groupCode.';
     }
+    await _refreshUserGroups();
     notifyListeners();
   }
 
@@ -637,6 +731,7 @@ class GameStateController extends ChangeNotifier {
       _subscribeToLiveMatch(trimmed);
       await _syncLiveMatch();
       _liveMatchMessage = 'Joined group $groupCode.';
+      await _refreshUserGroups();
     } catch (error) {
       await leaveLiveMatch();
       _liveMatchMessage = 'Could not join group: $error';
@@ -688,6 +783,7 @@ class GameStateController extends ChangeNotifier {
         userId: _currentUser.id,
         sessionId: sessionId,
       );
+      await _refreshUserGroups();
     } catch (error) {
       _liveMatchMessage = 'Could not leave group: $error';
       notifyListeners();
@@ -701,6 +797,9 @@ class GameStateController extends ChangeNotifier {
         : _currentPlayerIndex % _players.length;
     await leaveLiveMatch();
     _liveMatchMessage = 'You left the group.';
+    if (_userGroups.isNotEmpty) {
+      await selectUserGroup(_userGroups.first.sessionId, notify: false);
+    }
     notifyListeners();
   }
 

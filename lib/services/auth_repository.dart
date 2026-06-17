@@ -352,6 +352,35 @@ class AuthRepository {
     return sessions.isEmpty ? null : sessions.first;
   }
 
+  Future<List<Map<String, dynamic>>> fetchUserSessionsForSport({
+    required String userId,
+    required String sportId,
+  }) async {
+    if (!_firebaseReady || userId == 'guest') {
+      return const [];
+    }
+
+    final snapshot = await _db.child('userSessions/$userId').get();
+    final value = snapshot.value;
+    if (value is! Map) {
+      return const [];
+    }
+
+    final sessions =
+        Map<String, dynamic>.from(value).values
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .where((entry) => entry['sportId'] == sportId)
+            .toList()
+          ..sort((a, b) {
+            final aUpdated = _intFromValue(a['updatedAt']);
+            final bUpdated = _intFromValue(b['updatedAt']);
+            return bUpdated.compareTo(aUpdated);
+          });
+
+    return sessions;
+  }
+
   Future<void> reserveSportGroupName({
     required String sportId,
     required String normalizedName,
