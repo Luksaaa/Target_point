@@ -92,8 +92,10 @@ class GameStateController extends ChangeNotifier {
     if (savedSession != null) {
       _currentUser = savedSession;
       _accountMessage = 'Signed in as ${_currentUser.displayName}.';
-      _ensureCurrentUserParticipant();
       await _activateRealtimeMatchForCurrentUser();
+      if (!isLiveMatchActive) {
+        _ensureCurrentUserParticipant();
+      }
     }
     notifyListeners();
   }
@@ -282,9 +284,7 @@ class GameStateController extends ChangeNotifier {
     if (_players.isEmpty) {
       return 0;
     }
-    if (isLiveMatchActive &&
-        !_currentUser.isGuest &&
-        _currentUser.id != _liveHostUserId) {
+    if (isLiveMatchActive && !_currentUser.isGuest) {
       final ownIndex = _players.indexWhere(
         (player) => player.userId == _currentUser.id,
       );
@@ -350,8 +350,10 @@ class GameStateController extends ChangeNotifier {
       if (result.isSuccess) {
         _currentUser = result.session!;
         _accountMessage = 'Signed in as ${_currentUser.displayName}.';
-        _ensureCurrentUserParticipant();
         await _activateRealtimeMatchForCurrentUser();
+        if (!isLiveMatchActive) {
+          _ensureCurrentUserParticipant();
+        }
       } else {
         _accountMessage = result.errorMessage;
       }
@@ -436,6 +438,12 @@ class GameStateController extends ChangeNotifier {
     final existingPlayerIndex = _players.indexWhere(
       (player) => player.userId == _currentUser.id,
     );
+    final sameNamePlayerIndex = _players.indexWhere(
+      (player) =>
+          (player.userId == null || player.userId!.isEmpty) &&
+          player.name.trim().toLowerCase() ==
+              _currentUser.displayName.trim().toLowerCase(),
+    );
     final player = PlayerScore(
       userId: _currentUser.id,
       name: _currentUser.displayName,
@@ -449,6 +457,15 @@ class GameStateController extends ChangeNotifier {
     );
 
     if (existingPlayerIndex == -1) {
+      if (sameNamePlayerIndex != -1) {
+        _players[sameNamePlayerIndex] = _players[sameNamePlayerIndex].copyWith(
+          userId: _currentUser.id,
+          name: _currentUser.displayName,
+          avatarColorValue: _currentUser.avatarColorValue,
+        );
+        return;
+      }
+
       _players.add(player);
       if (_currentPlayerIndex >= _players.length) {
         _currentPlayerIndex = 0;
@@ -1349,6 +1366,7 @@ class GameStateController extends ChangeNotifier {
       _players = _players
           .map(
             (p) => PlayerScore(
+              userId: p.userId,
               name: p.name,
               avatarColorValue: p.avatarColorValue,
               remaining: _settings.mode == GameMode.x01

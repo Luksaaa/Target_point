@@ -34,7 +34,7 @@
         ".validate": "newData.hasChildren(['id', 'sessionName', 'sportId', 'sportName', 'ownerUserId', 'players', 'participants', 'members', 'updatedByUserId'])",
         "members": {
           "$uid": {
-            ".write": "auth != null && auth.uid === $uid && root.child('sessions').child($sessionId).exists() && (!data.exists() ? newData.child('role').val() === 'participant' : data.child('role').val() !== 'owner')",
+            ".write": "auth != null && auth.uid === $uid && root.child('sessions').child($sessionId).exists() && (!data.exists() ? newData.child('role').val() === 'participant' : data.child('role').val() === 'participant' && newData.child('role').val() === 'participant')",
             ".validate": "newData.hasChildren(['role', 'displayName', 'joinedAt'])"
           }
         }

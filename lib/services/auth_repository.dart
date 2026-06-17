@@ -382,7 +382,6 @@ class AuthRepository {
 
     await _db.child('publicUsers/${session.id}').update({
       'displayName': session.displayName,
-      'email': session.email,
       'avatarColorValue': session.avatarColorValue,
       'photoUrl': session.photoUrl,
       'updatedAt': ServerValue.timestamp,
