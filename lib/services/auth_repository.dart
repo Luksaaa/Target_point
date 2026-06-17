@@ -309,6 +309,7 @@ class AuthRepository {
     required String sportId,
     required String sessionName,
     required String role,
+    String? groupCode,
   }) async {
     if (!_firebaseReady || userId == 'guest') {
       return;
@@ -316,6 +317,7 @@ class AuthRepository {
 
     await _db.child('userSessions/$userId/$sessionId').update({
       'sessionId': sessionId,
+      'groupCode': groupCode,
       'sportId': sportId,
       'sessionName': sessionName,
       'role': role,

@@ -670,6 +670,7 @@ class GameStateController extends ChangeNotifier {
       await _authRepository.addUserSession(
         userId: _currentUser.id,
         sessionId: sessionId,
+        groupCode: groupCode,
         sportId: gameId,
         sessionName: safeName,
         role: 'owner',
@@ -724,6 +725,7 @@ class GameStateController extends ChangeNotifier {
       await _authRepository.addUserSession(
         userId: _currentUser.id,
         sessionId: trimmed,
+        groupCode: groupCode,
         sportId: gameId,
         sessionName: _activeSessionName,
         role: 'participant',

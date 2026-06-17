@@ -528,7 +528,8 @@ class _GroupPanel extends StatelessWidget {
     final theme = Theme.of(context);
     final isGuest = controller.currentUser.isGuest;
     final activeSessionId = controller.activeSessionId;
-    final groups = controller.userGroups;
+    final groups = _visibleGroups(controller);
+    final hasActiveGroup = activeSessionId != null;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -582,7 +583,7 @@ class _GroupPanel extends StatelessWidget {
             const SizedBox(height: 8),
             if (groups.isNotEmpty) ...[
               SizedBox(
-                height: 46,
+                height: 64,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: groups.length,
@@ -590,40 +591,77 @@ class _GroupPanel extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final group = groups[index];
                     final isActive = controller.liveMatchId == group.sessionId;
-                    return ChoiceChip(
-                      selected: isActive,
-                      showCheckmark: false,
-                      selectedColor: palette.primary,
-                      backgroundColor: palette.surfaceMuted,
-                      side: BorderSide(
-                        color: isActive
-                            ? palette.primary
-                            : palette.border.withValues(alpha: 0.65),
-                      ),
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            group.isOwner
-                                ? Icons.admin_panel_settings_outlined
-                                : Icons.groups_2_outlined,
-                            size: 16,
-                            color: isActive ? Colors.white : palette.textMuted,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            group.sessionName,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: isActive ? Colors.white : palette.text,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                      onSelected: (_) {
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(18),
+                      onTap: () {
                         controller.selectUserGroup(group.sessionId);
                       },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        width: 154,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? palette.primary
+                              : palette.surfaceMuted,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isActive
+                                ? palette.primary
+                                : palette.border.withValues(alpha: 0.55),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  group.isOwner
+                                      ? Icons.admin_panel_settings_outlined
+                                      : Icons.groups_2_outlined,
+                                  size: 16,
+                                  color: isActive
+                                      ? Colors.white
+                                      : palette.textMuted,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    group.sessionName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isActive
+                                          ? Colors.white
+                                          : palette.text,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              group.groupCode,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: isActive
+                                    ? Colors.white.withValues(alpha: 0.78)
+                                    : palette.textMuted,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -631,7 +669,7 @@ class _GroupPanel extends StatelessWidget {
               const SizedBox(height: 10),
             ],
             Text(
-              activeSessionId == null
+              !hasActiveGroup
                   ? groups.isEmpty
                         ? 'Create or join a group to sync this scoreboard.'
                         : 'Select a group above or create a new one.'
@@ -648,68 +686,16 @@ class _GroupPanel extends StatelessWidget {
                 style: TextStyle(color: palette.textMuted, fontSize: 12),
               ),
             ],
-            if (activeSessionId != null) ...[
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: QrImageView(
-                      data: activeSessionId,
-                      version: QrVersions.auto,
-                      size: 112,
-                      backgroundColor: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Group code',
-                          style: TextStyle(
-                            color: palette.textMuted,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SelectableText(
-                          activeSessionId,
-                          style: TextStyle(
-                            color: palette.text,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 24,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            Clipboard.setData(
-                              ClipboardData(text: activeSessionId),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Group code copied'),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.copy, size: 18),
-                          label: const Text('Copy code'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: hasActiveGroup
+                  ? _ActiveGroupDetails(
+                      key: ValueKey(activeSessionId),
+                      activeSessionId: activeSessionId,
+                      palette: palette,
+                    )
+                  : const SizedBox.shrink(),
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -740,7 +726,7 @@ class _GroupPanel extends StatelessWidget {
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Join'),
                 ),
-                if (activeSessionId != null)
+                if (hasActiveGroup)
                   OutlinedButton.icon(
                     onPressed: controller.leaveGroup,
                     icon: const Icon(Icons.logout, size: 18),
@@ -752,6 +738,28 @@ class _GroupPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<UserGameGroup> _visibleGroups(GameStateController controller) {
+    final groups = [...controller.userGroups];
+    final liveMatchId = controller.liveMatchId;
+    final activeSessionId = controller.activeSessionId;
+    if (liveMatchId != null &&
+        activeSessionId != null &&
+        !groups.any((group) => group.sessionId == liveMatchId)) {
+      groups.insert(
+        0,
+        UserGameGroup(
+          sessionId: liveMatchId,
+          groupCode: activeSessionId,
+          sessionName: controller.activeSessionName.isEmpty
+              ? activeSessionId
+              : controller.activeSessionName,
+          role: controller.isLiveHost ? 'owner' : 'participant',
+        ),
+      );
+    }
+    return groups;
   }
 
   void _showTextActionDialog({
@@ -791,6 +799,79 @@ class _GroupPanel extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _ActiveGroupDetails extends StatelessWidget {
+  const _ActiveGroupDetails({
+    super.key,
+    required this.activeSessionId,
+    required this.palette,
+  });
+
+  final String activeSessionId;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: QrImageView(
+              data: activeSessionId,
+              version: QrVersions.auto,
+              size: 112,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Group code',
+                  style: TextStyle(
+                    color: palette.textMuted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SelectableText(
+                  activeSessionId,
+                  style: TextStyle(
+                    color: palette.text,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: activeSessionId));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Group code copied')),
+                    );
+                  },
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('Copy code'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
