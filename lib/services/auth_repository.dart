@@ -318,6 +318,7 @@ class AuthRepository {
     required String sessionName,
     required String role,
     String? groupCode,
+    int? memberCount,
   }) async {
     if (!_firebaseReady || userId == 'guest') {
       return;
@@ -329,6 +330,7 @@ class AuthRepository {
       'sportId': sportId,
       'sessionName': sessionName,
       'role': role,
+      'memberCount': memberCount,
       'updatedAt': ServerValue.timestamp,
     });
   }

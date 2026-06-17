@@ -56,12 +56,16 @@ class UserGameGroup {
     required this.groupCode,
     required this.sessionName,
     required this.role,
+    this.updatedAt = 0,
+    this.memberCount = 0,
   });
 
   final String sessionId;
   final String groupCode;
   final String sessionName;
   final String role;
+  final int updatedAt;
+  final int memberCount;
 
   bool get isOwner => role == 'owner';
 }
@@ -564,6 +568,8 @@ class GameStateController extends ChangeNotifier {
                     entry['sessionName'] as String? ??
                     (fallbackCode.isEmpty ? '$gameName group' : fallbackCode),
                 role: entry['role'] as String? ?? 'participant',
+                updatedAt: _intFromValue(entry['updatedAt']),
+                memberCount: _intFromValue(entry['memberCount']),
               );
             })
             .where((group) => group.sessionId.isNotEmpty),
@@ -678,6 +684,7 @@ class GameStateController extends ChangeNotifier {
         sportId: gameId,
         sessionName: safeName,
         role: 'owner',
+        memberCount: _players.length,
       );
       await _authRepository.reserveSportGroupName(
         sportId: gameId,
@@ -757,6 +764,7 @@ class GameStateController extends ChangeNotifier {
         sportId: gameId,
         sessionName: _activeSessionName,
         role: 'participant',
+        memberCount: _players.length,
       );
       _subscribeToLiveMatch(trimmed);
       await _syncLiveMatch();

@@ -7,7 +7,8 @@ import '../models/game_settings.dart';
 import '../models/player_score.dart';
 import '../theme/app_palette.dart';
 import '../widgets/player_avatar.dart';
-import '../widgets/profile_dialog.dart';
+
+enum _GroupSortMode { newest, popular, az }
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.controller, super.key});
@@ -22,6 +23,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _playerNameController = TextEditingController();
   final TextEditingController _sessionNameController = TextEditingController();
   final TextEditingController _joinSessionController = TextEditingController();
+  final TextEditingController _groupSearchController = TextEditingController();
+  _GroupSortMode _groupSortMode = _GroupSortMode.newest;
   int _newPlayerColor = 0xFF0F8B6B; // Default emerald
 
   final List<int> _colorOptions = const [
@@ -34,10 +37,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _groupSearchController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _playerNameController.dispose();
     _sessionNameController.dispose();
     _joinSessionController.dispose();
+    _groupSearchController.dispose();
     super.dispose();
   }
 
@@ -246,11 +260,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = AppPalette.of(context);
-    final settings = widget.controller.settings;
-    final players = widget.controller.players;
-    final showMatchControls =
-        widget.controller.currentUser.isGuest ||
-        widget.controller.activeSessionId != null;
 
     return SingleChildScrollView(
       child: Column(
@@ -266,284 +275,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          _GroupPanel(
+          _GroupBrowser(
             controller: widget.controller,
             sessionNameController: _sessionNameController,
             joinSessionController: _joinSessionController,
+            searchController: _groupSearchController,
+            sortMode: _groupSortMode,
+            onSortChanged: (mode) => setState(() => _groupSortMode = mode),
+            onOpenGroup: _openGroup,
             palette: palette,
           ),
-          const SizedBox(height: 16),
-
-          if (showMatchControls) ...[
-            if (widget.controller.isDartsGame) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(
-                      color: palette.border.withValues(alpha: 0.45),
-                    ),
-                    bottom: BorderSide(
-                      color: palette.border.withValues(alpha: 0.45),
-                    ),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _SectionTitle(
-                      title: 'Game Mode',
-                      icon: Icons.videogame_asset,
-                      palette: palette,
-                    ),
-                    SegmentedButton<GameMode>(
-                      segments: const [
-                        ButtonSegment(value: GameMode.x01, label: Text('X01')),
-                        ButtonSegment(
-                          value: GameMode.countUp,
-                          label: Text('Count Up'),
-                        ),
-                      ],
-                      selected: {settings.mode},
-                      onSelectionChanged: (selection) {
-                        _confirmSettingsChange(() {
-                          widget.controller.updateSettings(
-                            mode: selection.first,
-                          );
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    if (settings.mode == GameMode.x01) ...[
-                      _SectionTitle(
-                        title: 'Starting Score',
-                        icon: Icons.score,
-                        palette: palette,
-                      ),
-                      Wrap(
-                        spacing: 8,
-                        children: widget.controller.scoreOptions.map((score) {
-                          final isSelected = settings.startingScore == score;
-                          return ChoiceChip(
-                            label: Text('$score'),
-                            selected: isSelected,
-                            selectedColor: palette.primarySoft,
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? palette.primary
-                                  : palette.text,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            onSelected: (_) {
-                              _confirmSettingsChange(() {
-                                widget.controller.updateSettings(
-                                  startingScore: score,
-                                );
-                              });
-                            },
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionTitle(
-                        title: 'Finish Rule',
-                        icon: Icons.flag,
-                        palette: palette,
-                      ),
-                      SegmentedButton<OutRule>(
-                        segments: const [
-                          ButtonSegment(
-                            value: OutRule.singleOut,
-                            label: Text('Single'),
-                          ),
-                          ButtonSegment(
-                            value: OutRule.doubleOut,
-                            label: Text('Double'),
-                          ),
-                          ButtonSegment(
-                            value: OutRule.masterOut,
-                            label: Text('Master'),
-                          ),
-                        ],
-                        selected: {settings.outRule},
-                        onSelectionChanged: (selection) {
-                          _confirmSettingsChange(() {
-                            widget.controller.updateSettings(
-                              outRule: selection.first,
-                            );
-                          });
-                        },
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Players List & Management
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 12,
-              runSpacing: 10,
-              children: [
-                Text(
-                  'Players Lineup',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: palette.text,
-                  ),
-                ),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: palette.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  onPressed: _showAddPlayerDialog,
-                  icon: const Icon(Icons.person_add, size: 18),
-                  label: const Text(
-                    'Add Player',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: palette.border.withValues(alpha: 0.45),
-                  ),
-                ),
-              ),
-              child: SizedBox(
-                height: 300,
-                child: ReorderableListView.builder(
-                  shrinkWrap: true,
-                  itemCount: players.length,
-                  onReorder: widget.controller.reorderPlayers,
-                  itemBuilder: (context, index) {
-                    final player = players[index];
-                    final isOwner = widget.controller.isGroupOwner(player);
-                    final canDelete =
-                        player.userId == null ||
-                        (widget.controller.canManageGroupMembers && !isOwner);
-
-                    return Card(
-                      key: ValueKey(player.name),
-                      elevation: 0,
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      color: palette.surfaceMuted,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: ListTile(
-                        dense: true,
-                        leading: PlayerAvatar(
-                          name: player.name,
-                          avatarColorValue: player.avatarColorValue,
-                          photoUrl: player.photoUrl,
-                          radius: 16,
-                        ),
-                        title: Text(
-                          player.name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: palette.text,
-                          ),
-                        ),
-                        subtitle: Text(
-                          isOwner ? 'Group admin' : 'Tap to edit stats',
-                          style: TextStyle(
-                            color: isOwner
-                                ? palette.primary
-                                : palette.textMuted,
-                            fontSize: 11,
-                            fontWeight: isOwner
-                                ? FontWeight.w900
-                                : FontWeight.w600,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: palette.textMuted,
-                              ),
-                              onPressed: players.length > 1 && canDelete
-                                  ? () => _confirmRemovePlayer(player)
-                                  : null,
-                            ),
-                            ReorderableDragStartListener(
-                              index: index,
-                              child: const Icon(
-                                Icons.drag_handle,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                        onTap: () {
-                          // Open profile dialog to view details
-                          final pIndex = widget.controller.profiles.indexWhere(
-                            (p) => p.name == player.name,
-                          );
-                          if (pIndex != -1) {
-                            showDialog(
-                              context: context,
-                              builder: (context) => ProfileDialog(
-                                profile: widget.controller.profiles[pIndex],
-                                controller: widget.controller,
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    );
-                  },
-                ),
+          if (widget.controller.currentUser.isGuest) ...[
+            const SizedBox(height: 24),
+            Divider(color: palette.border.withValues(alpha: 0.5)),
+            const SizedBox(height: 16),
+            Text(
+              'Local players',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: palette.text,
+                fontWeight: FontWeight.w900,
               ),
             ),
             const SizedBox(height: 12),
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: palette.primary,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: _showAddPlayerDialog,
+              icon: const Icon(Icons.person_add, size: 18),
+              label: const Text('Add Player'),
+            ),
           ],
         ],
       ),
     );
   }
+
+  Future<void> _openGroup(UserGameGroup group) async {
+    final loaded = await widget.controller.selectUserGroup(group.sessionId);
+    if (!mounted || !loaded) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _GroupDetailScreen(
+          controller: widget.controller,
+          onAddPlayer: _showAddPlayerDialog,
+          onConfirmSettingsChange: _confirmSettingsChange,
+          onConfirmRemovePlayer: _confirmRemovePlayer,
+        ),
+      ),
+    );
+    if (mounted) {
+      setState(() {});
+    }
+  }
 }
 
-class _GroupPanel extends StatelessWidget {
-  const _GroupPanel({
+class _GroupBrowser extends StatelessWidget {
+  const _GroupBrowser({
     required this.controller,
     required this.sessionNameController,
     required this.joinSessionController,
+    required this.searchController,
+    required this.sortMode,
+    required this.onSortChanged,
+    required this.onOpenGroup,
     required this.palette,
   });
 
   final GameStateController controller;
   final TextEditingController sessionNameController;
   final TextEditingController joinSessionController;
+  final TextEditingController searchController;
+  final _GroupSortMode sortMode;
+  final ValueChanged<_GroupSortMode> onSortChanged;
+  final ValueChanged<UserGameGroup> onOpenGroup;
   final AppPalette palette;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isGuest = controller.currentUser.isGuest;
-    final activeSessionId = controller.activeSessionId;
-    final groups = _visibleGroups(controller);
-    final hasActiveGroup = activeSessionId != null;
+    final groups = _filteredGroups(controller);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -556,32 +371,13 @@ class _GroupPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Group',
+                  'Groups',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: palette.text,
                   ),
                 ),
               ),
-              if (activeSessionId != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: palette.primarySoft,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Live',
-                    style: TextStyle(
-                      color: palette.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
             ],
           ),
           if (isGuest) ...[
@@ -594,129 +390,52 @@ class _GroupPanel extends StatelessWidget {
               ),
             ),
           ] else ...[
-            const SizedBox(height: 8),
-            if (groups.isNotEmpty) ...[
-              SizedBox(
-                height: 64,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: groups.length,
-                  separatorBuilder: (_, _) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final group = groups[index];
-                    final isActive = controller.liveMatchId == group.sessionId;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () {
-                        controller.selectUserGroup(group.sessionId);
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        width: 154,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? palette.primary
-                              : palette.surfaceMuted,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  group.isOwner
-                                      ? Icons.admin_panel_settings_outlined
-                                      : Icons.groups_2_outlined,
-                                  size: 16,
-                                  color: isActive
-                                      ? Colors.white
-                                      : palette.textMuted,
-                                ),
-                                const SizedBox(width: 6),
-                                Expanded(
-                                  child: Text(
-                                    group.sessionName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: isActive
-                                          ? Colors.white
-                                          : palette.text,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              group.groupCode,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isActive
-                                    ? Colors.white.withValues(alpha: 0.78)
-                                    : palette.textMuted,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                            const Spacer(),
-                            Container(
-                              height: 2,
-                              width: 34,
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? Colors.white
-                                    : palette.border.withValues(alpha: 0.7),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+            const SizedBox(height: 14),
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search groups',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: palette.surfaceMuted,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
                 ),
               ),
-              const SizedBox(height: 10),
-            ],
-            Text(
-              !hasActiveGroup
-                  ? groups.isEmpty
-                        ? 'Create or join a group to sync this scoreboard.'
-                        : 'Select a group above or create a new one.'
-                  : controller.activeSessionName,
-              style: TextStyle(
-                color: palette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            if (controller.liveMatchMessage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                controller.liveMatchMessage!,
-                style: TextStyle(color: palette.textMuted, fontSize: 12),
-              ),
-            ],
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
-              child: hasActiveGroup
-                  ? _ActiveGroupDetails(
-                      key: ValueKey(activeSessionId),
-                      activeSessionId: activeSessionId,
-                      palette: palette,
-                    )
-                  : const SizedBox.shrink(),
             ),
             const SizedBox(height: 12),
+            SegmentedButton<_GroupSortMode>(
+              selected: {sortMode},
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: _GroupSortMode.newest,
+                  label: Text('Newest'),
+                ),
+                ButtonSegment(
+                  value: _GroupSortMode.popular,
+                  label: Text('Popular'),
+                ),
+                ButtonSegment(value: _GroupSortMode.az, label: Text('A-Z')),
+              ],
+              onSelectionChanged: (selection) {
+                onSortChanged(selection.first);
+              },
+            ),
+            const SizedBox(height: 12),
+            if (controller.liveMatchMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  controller.liveMatchMessage!,
+                  style: TextStyle(color: palette.textMuted, fontSize: 12),
+                ),
+              ),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -746,21 +465,45 @@ class _GroupPanel extends StatelessWidget {
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Join'),
                 ),
-                if (hasActiveGroup)
-                  OutlinedButton.icon(
-                    onPressed: controller.leaveGroup,
-                    icon: const Icon(Icons.logout, size: 18),
-                    label: const Text('Leave'),
-                  ),
               ],
             ),
+            const SizedBox(height: 18),
+            if (groups.isEmpty)
+              Text(
+                searchController.text.trim().isEmpty
+                    ? 'No groups yet. Create or join one.'
+                    : 'No groups match your search.',
+                style: TextStyle(
+                  color: palette.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: groups.length,
+                separatorBuilder: (context, index) => Divider(
+                  height: 1,
+                  color: palette.border.withValues(alpha: 0.5),
+                ),
+                itemBuilder: (context, index) {
+                  final group = groups[index];
+                  return _GroupListTile(
+                    group: group,
+                    palette: palette,
+                    isActive: controller.liveMatchId == group.sessionId,
+                    onTap: () => onOpenGroup(group),
+                  );
+                },
+              ),
           ],
         ],
       ),
     );
   }
 
-  List<UserGameGroup> _visibleGroups(GameStateController controller) {
+  List<UserGameGroup> _filteredGroups(GameStateController controller) {
     final groups = [...controller.userGroups];
     final liveMatchId = controller.liveMatchId;
     final activeSessionId = controller.activeSessionId;
@@ -776,10 +519,33 @@ class _GroupPanel extends StatelessWidget {
               ? activeSessionId
               : controller.activeSessionName,
           role: controller.isLiveHost ? 'owner' : 'participant',
+          memberCount: controller.players.length,
         ),
       );
     }
-    return groups;
+    final query = searchController.text.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? groups
+        : groups
+              .where(
+                (group) =>
+                    group.sessionName.toLowerCase().contains(query) ||
+                    group.groupCode.toLowerCase().contains(query),
+              )
+              .toList();
+    switch (sortMode) {
+      case _GroupSortMode.newest:
+        filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      case _GroupSortMode.popular:
+        filtered.sort((a, b) => b.memberCount.compareTo(a.memberCount));
+      case _GroupSortMode.az:
+        filtered.sort(
+          (a, b) => a.sessionName.toLowerCase().compareTo(
+            b.sessionName.toLowerCase(),
+          ),
+        );
+    }
+    return filtered;
   }
 
   void _showTextActionDialog({
@@ -823,9 +589,358 @@ class _GroupPanel extends StatelessWidget {
   }
 }
 
+class _GroupListTile extends StatelessWidget {
+  const _GroupListTile({
+    required this.group,
+    required this.palette,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final UserGameGroup group;
+  final AppPalette palette;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: isActive ? palette.primary : palette.surfaceMuted,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                group.isOwner
+                    ? Icons.admin_panel_settings_outlined
+                    : Icons.groups_2_outlined,
+                color: isActive ? Colors.white : palette.textMuted,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    group.sessionName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.text,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '${group.groupCode} · ${group.isOwner ? "Admin" : "Member"} · ${group.memberCount} players',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: palette.textMuted,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: palette.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupDetailScreen extends StatelessWidget {
+  const _GroupDetailScreen({
+    required this.controller,
+    required this.onAddPlayer,
+    required this.onConfirmSettingsChange,
+    required this.onConfirmRemovePlayer,
+  });
+
+  final GameStateController controller;
+  final VoidCallback onAddPlayer;
+  final void Function(VoidCallback onChange) onConfirmSettingsChange;
+  final void Function(PlayerScore player) onConfirmRemovePlayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        title: Text(controller.activeSessionName),
+        backgroundColor: palette.surface,
+        foregroundColor: palette.text,
+      ),
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: controller,
+          builder: (context, _) {
+            final activeSessionId = controller.activeSessionId;
+            final theme = Theme.of(context);
+            final settings = controller.settings;
+            final players = controller.players;
+
+            if (activeSessionId == null) {
+              return Center(
+                child: Text(
+                  'Select a group first.',
+                  style: TextStyle(color: palette.textMuted),
+                ),
+              );
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _ActiveGroupDetails(
+                    activeSessionId: activeSessionId,
+                    palette: palette,
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: controller.leaveGroup,
+                        icon: const Icon(Icons.logout, size: 18),
+                        label: const Text('Leave'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  if (controller.isDartsGame) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: palette.border.withValues(alpha: 0.45),
+                          ),
+                          bottom: BorderSide(
+                            color: palette.border.withValues(alpha: 0.45),
+                          ),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _SectionTitle(
+                            title: 'Game Mode',
+                            icon: Icons.videogame_asset,
+                            palette: palette,
+                          ),
+                          SegmentedButton<GameMode>(
+                            segments: const [
+                              ButtonSegment(
+                                value: GameMode.x01,
+                                label: Text('X01'),
+                              ),
+                              ButtonSegment(
+                                value: GameMode.countUp,
+                                label: Text('Count Up'),
+                              ),
+                            ],
+                            selected: {settings.mode},
+                            onSelectionChanged: (selection) {
+                              onConfirmSettingsChange(() {
+                                controller.updateSettings(
+                                  mode: selection.first,
+                                );
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          if (settings.mode == GameMode.x01) ...[
+                            _SectionTitle(
+                              title: 'Starting Score',
+                              icon: Icons.score,
+                              palette: palette,
+                            ),
+                            Wrap(
+                              spacing: 8,
+                              children: controller.scoreOptions.map((score) {
+                                final isSelected =
+                                    settings.startingScore == score;
+                                return ChoiceChip(
+                                  label: Text('$score'),
+                                  selected: isSelected,
+                                  selectedColor: palette.primarySoft,
+                                  labelStyle: TextStyle(
+                                    color: isSelected
+                                        ? palette.primary
+                                        : palette.text,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  onSelected: (_) {
+                                    onConfirmSettingsChange(() {
+                                      controller.updateSettings(
+                                        startingScore: score,
+                                      );
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 16),
+                            _SectionTitle(
+                              title: 'Finish Rule',
+                              icon: Icons.flag,
+                              palette: palette,
+                            ),
+                            SegmentedButton<OutRule>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: OutRule.singleOut,
+                                  label: Text('Single'),
+                                ),
+                                ButtonSegment(
+                                  value: OutRule.doubleOut,
+                                  label: Text('Double'),
+                                ),
+                                ButtonSegment(
+                                  value: OutRule.masterOut,
+                                  label: Text('Master'),
+                                ),
+                              ],
+                              selected: {settings.outRule},
+                              onSelectionChanged: (selection) {
+                                onConfirmSettingsChange(() {
+                                  controller.updateSettings(
+                                    outRule: selection.first,
+                                  );
+                                });
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: [
+                      Text(
+                        'Players Lineup',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: palette.text,
+                        ),
+                      ),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: palette.primary,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: onAddPlayer,
+                        icon: const Icon(Icons.person_add, size: 18),
+                        label: const Text('Add Player'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: palette.border.withValues(alpha: 0.45),
+                        ),
+                      ),
+                    ),
+                    child: ReorderableListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: players.length,
+                      onReorder: controller.reorderPlayers,
+                      itemBuilder: (context, index) {
+                        final player = players[index];
+                        final isOwner = controller.isGroupOwner(player);
+                        final canDelete =
+                            player.userId == null ||
+                            (controller.canManageGroupMembers && !isOwner);
+                        return ListTile(
+                          key: ValueKey('${player.userId}-${player.name}'),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                          ),
+                          leading: PlayerAvatar(
+                            name: player.name,
+                            avatarColorValue: player.avatarColorValue,
+                            photoUrl: player.photoUrl,
+                            radius: 20,
+                          ),
+                          title: Text(
+                            player.name,
+                            style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          subtitle: Text(
+                            isOwner ? 'Group admin' : 'Member',
+                            style: TextStyle(
+                              color: isOwner
+                                  ? palette.primary
+                                  : palette.textMuted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.delete_outline,
+                                  color: palette.textMuted,
+                                ),
+                                onPressed: players.length > 1 && canDelete
+                                    ? () => onConfirmRemovePlayer(player)
+                                    : null,
+                              ),
+                              ReorderableDragStartListener(
+                                index: index,
+                                child: Icon(
+                                  Icons.drag_handle,
+                                  color: palette.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
 class _ActiveGroupDetails extends StatelessWidget {
   const _ActiveGroupDetails({
-    super.key,
     required this.activeSessionId,
     required this.palette,
   });
