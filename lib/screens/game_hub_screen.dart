@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/sport_game.dart';
 import '../theme/app_palette.dart';
+import '../widgets/responsive_content.dart';
 
 class GameHubScreen extends StatefulWidget {
   const GameHubScreen({
@@ -48,69 +49,63 @@ class _GameHubScreenState extends State<GameHubScreen> {
           builder: (context, constraints) {
             final isWide = constraints.maxWidth >= 820;
 
-            return CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    isWide ? 32 : 16,
-                    16,
-                    isWide ? 32 : 16,
-                    8,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: _HubHeader(
-                      themeMode: widget.themeMode,
-                      locale: widget.locale,
-                      onThemeModeChanged: widget.onThemeModeChanged,
-                      onLocaleChanged: widget.onLocaleChanged,
-                      onCreateActivity: () =>
-                          _showCreateActivityDialog(context),
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    isWide ? 32 : 16,
-                    8,
-                    isWide ? 32 : 16,
-                    24,
-                  ),
-                  sliver: SliverGrid(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final game = games[index];
-                      return _GameCard(
-                        game: game,
-                        onTap: () {
-                          widget.onOpenSport(game);
-                        },
-                      );
-                    }, childCount: games.length),
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: isWide ? 260 : 190,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      mainAxisExtent: 116,
-                    ),
-                  ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    isWide ? 32 : 16,
-                    0,
-                    isWide ? 32 : 16,
-                    32,
-                  ),
-                  sliver: SliverToBoxAdapter(
-                    child: Text(
-                      l10n.t('hub.note'),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: palette.textMuted,
-                        fontWeight: FontWeight.w700,
+            return ResponsiveContent(
+              maxWidth: 1280,
+              padding: EdgeInsets.fromLTRB(
+                isWide ? 24 : 16,
+                16,
+                isWide ? 24 : 16,
+                32,
+              ),
+              child: CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    sliver: SliverToBoxAdapter(
+                      child: _HubHeader(
+                        themeMode: widget.themeMode,
+                        locale: widget.locale,
+                        onThemeModeChanged: widget.onThemeModeChanged,
+                        onLocaleChanged: widget.onLocaleChanged,
+                        onCreateActivity: () =>
+                            _showCreateActivityDialog(context),
                       ),
                     ),
                   ),
-                ),
-              ],
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    sliver: SliverGrid(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final game = games[index];
+                        return _GameCard(
+                          game: game,
+                          onTap: () {
+                            widget.onOpenSport(game);
+                          },
+                        );
+                      }, childCount: games.length),
+                      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: isWide ? 260 : 190,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        mainAxisExtent: 116,
+                      ),
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        l10n.t('hub.note'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: palette.textMuted,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         ),

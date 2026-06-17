@@ -11,6 +11,7 @@ import 'screens/history_screen.dart';
 import 'screens/account_screen.dart';
 import 'screens/game_hub_screen.dart';
 import 'models/sport_game.dart';
+import 'widgets/responsive_content.dart';
 
 void main() {
   runApp(const TargetPointApp());
@@ -493,7 +494,8 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                         ),
                       ),
                       Expanded(
-                        child: Padding(
+                        child: ResponsiveContent(
+                          maxWidth: 1320,
                           padding: const EdgeInsets.all(24),
                           child: _buildActiveScreen(true),
                         ),
@@ -589,7 +591,8 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
                       const SizedBox(width: 12),
                     ],
                   ),
-                  body: Padding(
+                  body: ResponsiveContent(
+                    maxWidth: 980,
                     padding: const EdgeInsets.all(16),
                     child: _buildActiveScreen(false),
                   ),
