@@ -192,6 +192,14 @@ class AuthRepository {
       await saveUserProfile(session);
       return AuthResult.success(session);
     } catch (error) {
+      final message = error.toString();
+      if (message.contains('invalid_request') ||
+          message.contains('redirect_uri_mismatch') ||
+          message.contains('disallowed_useragent')) {
+        return const AuthResult.failure(
+          'Google OAuth is misconfigured. Check Firebase Auth Google provider, authorized domains, and OAuth redirect URI.',
+        );
+      }
       return AuthResult.failure('Google sign-in failed: $error');
     }
   }
@@ -423,7 +431,7 @@ class AuthRepository {
     await _db.child('sessions/$sessionId/members/${user.id}').update({
       'role': role,
       'displayName': user.displayName,
-      'photoUrl': user.photoUrl,
+      'photoUrl': _databaseSafePhotoUrl(user.photoUrl),
       'joinedAt': ServerValue.timestamp,
     });
   }
@@ -437,14 +445,14 @@ class AuthRepository {
       'displayName': session.displayName,
       'email': session.email,
       'avatarColorValue': session.avatarColorValue,
-      'photoUrl': session.photoUrl,
+      'photoUrl': _databaseSafePhotoUrl(session.photoUrl),
       'updatedAt': ServerValue.timestamp,
     });
 
     await _db.child('publicUsers/${session.id}').update({
       'displayName': session.displayName,
       'avatarColorValue': session.avatarColorValue,
-      'photoUrl': session.photoUrl,
+      'photoUrl': _databaseSafePhotoUrl(session.photoUrl),
       'updatedAt': ServerValue.timestamp,
     });
   }
@@ -465,5 +473,12 @@ class AuthRepository {
       return int.tryParse(value) ?? 0;
     }
     return 0;
+  }
+
+  String? _databaseSafePhotoUrl(String? value) {
+    if (value == null || value.isEmpty || value.startsWith('data:image')) {
+      return null;
+    }
+    return value;
   }
 }

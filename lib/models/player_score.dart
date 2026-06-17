@@ -10,12 +10,14 @@ class PlayerScore {
     required this.totalScored,
     required this.turns,
     required this.isWinner,
+    this.photoUrl,
     this.stats = const {},
   });
 
   final String? userId;
   final String name;
   final int avatarColorValue; // Hex ARGB representation
+  final String? photoUrl;
   final int remaining;
   final int totalScored;
   final List<List<DartHit>> turns;
@@ -111,6 +113,7 @@ class PlayerScore {
     String? userId,
     String? name,
     int? avatarColorValue,
+    String? photoUrl,
     int? remaining,
     int? totalScored,
     List<List<DartHit>>? turns,
@@ -121,6 +124,7 @@ class PlayerScore {
       userId: userId ?? this.userId,
       name: name ?? this.name,
       avatarColorValue: avatarColorValue ?? this.avatarColorValue,
+      photoUrl: photoUrl ?? this.photoUrl,
       remaining: remaining ?? this.remaining,
       totalScored: totalScored ?? this.totalScored,
       turns: turns ?? this.turns,

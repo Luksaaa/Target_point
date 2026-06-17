@@ -4,6 +4,7 @@ import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../models/match_history.dart';
 import '../theme/app_palette.dart';
+import 'player_avatar.dart';
 import 'profile_dialog.dart';
 
 class SearchDialog extends StatefulWidget {
@@ -351,12 +352,10 @@ class MatchRecapDialog extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundColor: Color(player.avatarColorValue),
-                            foregroundColor: Colors.white,
-                            child: Text(
-                              player.name.substring(0, 1).toUpperCase(),
-                            ),
+                          PlayerAvatar(
+                            name: player.name,
+                            avatarColorValue: player.avatarColorValue,
+                            photoUrl: player.photoUrl,
                           ),
                           const SizedBox(width: 12),
                           Expanded(

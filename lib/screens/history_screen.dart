@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../theme/app_palette.dart';
+import '../widgets/player_avatar.dart';
 import '../widgets/search_dialog.dart'; // To reuse MatchRecapDialog
 
 class HistoryScreen extends StatelessWidget {
@@ -115,21 +116,11 @@ class HistoryScreen extends StatelessWidget {
                                 .map(
                                   (player) => Padding(
                                     padding: const EdgeInsets.only(left: 4.0),
-                                    child: CircleAvatar(
+                                    child: PlayerAvatar(
+                                      name: player.name,
+                                      avatarColorValue: player.avatarColorValue,
+                                      photoUrl: player.photoUrl,
                                       radius: 10,
-                                      backgroundColor: Color(
-                                        player.avatarColorValue,
-                                      ),
-                                      child: Text(
-                                        player.name
-                                            .substring(0, 1)
-                                            .toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 8,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ),

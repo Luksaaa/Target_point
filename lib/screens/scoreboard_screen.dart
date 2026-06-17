@@ -4,6 +4,7 @@ import '../l10n/app_localizations.dart';
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../theme/app_palette.dart';
+import '../widgets/player_avatar.dart';
 
 class ScoreboardScreen extends StatefulWidget {
   const ScoreboardScreen({required this.controller, super.key});
@@ -77,12 +78,11 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                       child: Column(
                         children: [
                           ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Color(player.avatarColorValue),
-                              foregroundColor: Colors.white,
-                              child: Text(
-                                player.name.substring(0, 1).toUpperCase(),
-                              ),
+                            leading: PlayerAvatar(
+                              name: player.name,
+                              avatarColorValue: player.avatarColorValue,
+                              photoUrl: player.photoUrl,
+                              radius: 24,
                             ),
                             title: Row(
                               children: [

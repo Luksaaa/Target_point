@@ -7,6 +7,7 @@ import '../models/player_score.dart';
 import '../models/sport_game.dart';
 import '../theme/app_palette.dart';
 import '../widgets/dartboard.dart';
+import '../widgets/player_avatar.dart';
 
 class PlayScreen extends StatefulWidget {
   const PlayScreen({
@@ -230,14 +231,11 @@ class _CurrentTurnHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: Color(player.avatarColorValue),
-                foregroundColor: Colors.white,
+              PlayerAvatar(
+                name: player.name,
+                avatarColorValue: player.avatarColorValue,
+                photoUrl: player.photoUrl,
                 radius: 20,
-                child: Text(
-                  player.name.substring(0, 1).toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -592,14 +590,11 @@ class _QuickScoreboardPanel extends StatelessWidget {
                 final isCurrent = index == controller.currentPlayerIndex;
                 return Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: Color(player.avatarColorValue),
-                      foregroundColor: Colors.white,
+                    PlayerAvatar(
+                      name: player.name,
+                      avatarColorValue: player.avatarColorValue,
+                      photoUrl: player.photoUrl,
                       radius: 18,
-                      child: Text(
-                        player.name.substring(0, 1).toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(

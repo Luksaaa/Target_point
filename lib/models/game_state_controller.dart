@@ -468,6 +468,7 @@ class GameStateController extends ChangeNotifier {
       userId: _currentUser.id,
       name: _currentUser.displayName,
       avatarColorValue: _currentUser.avatarColorValue,
+      photoUrl: _currentUser.photoUrl,
       remaining: _settings.mode == GameMode.x01 && isDartsGame
           ? _settings.startingScore
           : 0,
@@ -482,6 +483,7 @@ class GameStateController extends ChangeNotifier {
           userId: _currentUser.id,
           name: _currentUser.displayName,
           avatarColorValue: _currentUser.avatarColorValue,
+          photoUrl: _currentUser.photoUrl,
         );
         return;
       }
@@ -495,6 +497,7 @@ class GameStateController extends ChangeNotifier {
         userId: _currentUser.id,
         name: _currentUser.displayName,
         avatarColorValue: _currentUser.avatarColorValue,
+        photoUrl: _currentUser.photoUrl,
       );
     }
   }
@@ -702,6 +705,7 @@ class GameStateController extends ChangeNotifier {
         userId: _currentUser.id,
         name: _currentUser.displayName,
         avatarColorValue: _currentUser.avatarColorValue,
+        photoUrl: _currentUser.photoUrl,
         remaining: _settings.mode == GameMode.x01 && isDartsGame
             ? _settings.startingScore
             : 0,
@@ -1545,6 +1549,7 @@ class GameStateController extends ChangeNotifier {
       'userId': player.userId,
       'name': player.name,
       'avatarColorValue': player.avatarColorValue,
+      'photoUrl': _sharedPhotoUrl(player.photoUrl),
       'remaining': player.remaining,
       'totalScored': player.totalScored,
       'stats': player.stats,
@@ -1560,6 +1565,7 @@ class GameStateController extends ChangeNotifier {
       'userId': player.userId,
       'displayName': player.name,
       'avatarColorValue': player.avatarColorValue,
+      'photoUrl': _sharedPhotoUrl(player.photoUrl),
       'isRegistered': player.isRegisteredUser,
       'role': player.userId == _liveHostUserId ? 'owner' : 'participant',
     };
@@ -1613,6 +1619,7 @@ class GameStateController extends ChangeNotifier {
         value['avatarColorValue'],
         fallback: 0xFF0F8B6B,
       ),
+      photoUrl: value['photoUrl'] as String?,
       remaining: _intFromValue(value['remaining']),
       totalScored: _intFromValue(value['totalScored']),
       stats: _statsFromMap(value['stats']),
@@ -1662,12 +1669,14 @@ class GameStateController extends ChangeNotifier {
 
       final member = Map<String, dynamic>.from(value);
       final displayName = member['displayName'] as String? ?? 'Player';
+      final photoUrl = member['photoUrl'] as String?;
       final existingIndex = _players.indexWhere(
         (player) => player.userId == userId,
       );
       if (existingIndex != -1) {
         _players[existingIndex] = _players[existingIndex].copyWith(
           name: displayName,
+          photoUrl: photoUrl,
         );
         continue;
       }
@@ -1682,6 +1691,7 @@ class GameStateController extends ChangeNotifier {
         _players[sameNameIndex] = _players[sameNameIndex].copyWith(
           userId: userId,
           name: displayName,
+          photoUrl: photoUrl,
         );
         continue;
       }
@@ -1691,6 +1701,7 @@ class GameStateController extends ChangeNotifier {
           userId: userId,
           name: displayName,
           avatarColorValue: _nextAvatarColor(),
+          photoUrl: photoUrl,
           remaining: _settings.mode == GameMode.x01 && isDartsGame
               ? _settings.startingScore
               : 0,
@@ -1821,7 +1832,7 @@ class GameStateController extends ChangeNotifier {
       members[_currentUser.id] = {
         'role': _currentUser.id == _liveHostUserId ? 'owner' : 'participant',
         'displayName': _currentUser.displayName,
-        'photoUrl': _currentUser.photoUrl,
+        'photoUrl': _sharedPhotoUrl(_currentUser.photoUrl),
         'joinedAt': existing['joinedAt'] ?? fallbackJoinedAt,
       };
     }
@@ -1836,10 +1847,17 @@ class GameStateController extends ChangeNotifier {
       members[userId] = {
         'role': userId == _liveHostUserId ? 'owner' : 'participant',
         'displayName': player.name,
-        'photoUrl': existing['photoUrl'],
+        'photoUrl': _sharedPhotoUrl(player.photoUrl) ?? existing['photoUrl'],
         'joinedAt': existing['joinedAt'] ?? fallbackJoinedAt,
       };
     }
     return members;
+  }
+
+  String? _sharedPhotoUrl(String? value) {
+    if (value == null || value.isEmpty || value.startsWith('data:image')) {
+      return null;
+    }
+    return value;
   }
 }

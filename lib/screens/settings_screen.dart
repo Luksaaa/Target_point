@@ -6,6 +6,7 @@ import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../models/player_score.dart';
 import '../theme/app_palette.dart';
+import '../widgets/player_avatar.dart';
 import '../widgets/profile_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -438,11 +439,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: ListTile(
                       dense: true,
-                      leading: CircleAvatar(
-                        backgroundColor: Color(player.avatarColorValue),
-                        foregroundColor: Colors.white,
+                      leading: PlayerAvatar(
+                        name: player.name,
+                        avatarColorValue: player.avatarColorValue,
+                        photoUrl: player.photoUrl,
                         radius: 16,
-                        child: Text(player.name.substring(0, 1).toUpperCase()),
                       ),
                       title: Text(
                         player.name,
