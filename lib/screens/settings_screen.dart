@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart';
+﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/game_state_controller.dart';
 import '../models/game_settings.dart';
 import '../models/player_score.dart';
@@ -11,6 +12,9 @@ import '../theme/app_palette.dart';
 import '../widgets/player_avatar.dart';
 
 enum _GroupSortMode { newest, popular, az }
+
+String _s(BuildContext context, String key) =>
+    AppLocalizations.of(context).t(key);
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({required this.controller, super.key});
@@ -80,7 +84,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Add New Player',
+                      _s(context, 'settings.addNewPlayer'),
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                         color: palette.text,
@@ -90,7 +94,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextField(
                       controller: _playerNameController,
                       decoration: InputDecoration(
-                        labelText: 'Player Name',
+                        labelText: _s(context, 'settings.playerName'),
                         focusedBorder: OutlineInputBorder(
                           borderSide: BorderSide(
                             color: palette.primary,
@@ -110,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Select Avatar Color',
+                      _s(context, 'settings.avatarColor'),
                       style: TextStyle(
                         color: palette.textMuted,
                         fontWeight: FontWeight.bold,
@@ -158,7 +162,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(),
                           child: Text(
-                            'Cancel',
+                            _s(context, 'common.cancel'),
                             style: TextStyle(color: palette.textMuted),
                           ),
                         ),
@@ -176,7 +180,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Navigator.of(context).pop();
                             }
                           },
-                          child: const Text('Add Player'),
+                          child: Text(_s(context, 'settings.addPlayer')),
                         ),
                       ],
                     ),
@@ -202,14 +206,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: palette.surface,
-          title: const Text('Restart Match?'),
-          content: const Text(
-            'Changing match settings will reset the current game state and scores. Do you wish to continue?',
-          ),
+          title: Text(_s(context, 'settings.restartMatchTitle')),
+          content: Text(_s(context, 'settings.restartMatchBody')),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Cancel', style: TextStyle(color: palette.textMuted)),
+              child: Text(
+                _s(context, 'common.cancel'),
+                style: TextStyle(color: palette.textMuted),
+              ),
             ),
             FilledButton(
               style: FilledButton.styleFrom(backgroundColor: palette.primary),
@@ -217,7 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.of(context).pop();
                 onChange();
               },
-              child: const Text('Yes, Reset'),
+              child: Text(_s(context, 'settings.yesReset')),
             ),
           ],
         ),
@@ -234,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: palette.surface,
-        title: const Text('Remove player?'),
+        title: Text(_s(context, 'settings.removePlayerTitle')),
         content: Text(
           isRegisteredGroupMember
               ? 'Remove ${player.name} from this group and lineup?'
@@ -243,7 +248,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Cancel', style: TextStyle(color: palette.textMuted)),
+            child: Text(
+              _s(context, 'common.cancel'),
+              style: TextStyle(color: palette.textMuted),
+            ),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: palette.primary),
@@ -251,7 +259,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.of(context).pop();
               widget.controller.removeGroupPlayer(player);
             },
-            child: const Text('Remove'),
+            child: Text(_s(context, 'common.remove')),
           ),
         ],
       ),
@@ -306,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               onPressed: _showAddPlayerDialog,
               icon: const Icon(Icons.person_add, size: 18),
-              label: const Text('Add Player'),
+              label: Text(_s(context, 'settings.addPlayer')),
             ),
           ],
         ],
@@ -391,7 +399,7 @@ class _GroupBrowser extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Groups',
+                  _s(context, 'settings.groups'),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: palette.text,
@@ -403,7 +411,7 @@ class _GroupBrowser extends StatelessWidget {
           if (isGuest) ...[
             const SizedBox(height: 8),
             Text(
-              'Guest mode is local only. Sign in to sync scores.',
+              _s(context, 'settings.guestLocal'),
               style: TextStyle(
                 color: palette.textMuted,
                 fontWeight: FontWeight.w700,
@@ -414,7 +422,7 @@ class _GroupBrowser extends StatelessWidget {
             TextField(
               controller: searchController,
               decoration: InputDecoration(
-                hintText: 'Search groups',
+                hintText: _s(context, 'settings.searchGroups'),
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: palette.surfaceMuted,
@@ -432,16 +440,19 @@ class _GroupBrowser extends StatelessWidget {
             SegmentedButton<_GroupSortMode>(
               selected: {sortMode},
               showSelectedIcon: false,
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: _GroupSortMode.newest,
-                  label: Text('Newest'),
+                  label: Text(_s(context, 'common.newest')),
                 ),
                 ButtonSegment(
                   value: _GroupSortMode.popular,
-                  label: Text('Popular'),
+                  label: Text(_s(context, 'common.popular')),
                 ),
-                ButtonSegment(value: _GroupSortMode.az, label: Text('A-Z')),
+                ButtonSegment(
+                  value: _GroupSortMode.az,
+                  label: Text(_s(context, 'common.az')),
+                ),
               ],
               onSelectionChanged: (selection) {
                 onSortChanged(selection.first);
@@ -463,33 +474,33 @@ class _GroupBrowser extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () => _showTextActionDialog(
                     context: context,
-                    title: 'Create group',
-                    hintText: 'Group name',
+                    title: _s(context, 'settings.createGroup'),
+                    hintText: _s(context, 'settings.groupName'),
                     controller: sessionNameController,
-                    actionLabel: 'Create',
+                    actionLabel: _s(context, 'common.create'),
                     maxLength: 16,
                     onSubmit: controller.createCloudSession,
                   ),
                   icon: const Icon(Icons.add_link, size: 18),
-                  label: const Text('Create'),
+                  label: Text(_s(context, 'common.create')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => _showTextActionDialog(
                     context: context,
-                    title: 'Join group',
-                    hintText: 'Group code',
+                    title: _s(context, 'settings.joinGroup'),
+                    hintText: _s(context, 'settings.groupCode'),
                     controller: joinSessionController,
-                    actionLabel: 'Join',
+                    actionLabel: _s(context, 'settings.joinGroup'),
                     onSubmit: controller.joinCloudSession,
                   ),
                   icon: const Icon(Icons.login, size: 18),
-                  label: const Text('Join'),
+                  label: Text(_s(context, 'settings.joinGroup')),
                 ),
                 if (_canScanQr)
                   OutlinedButton.icon(
                     onPressed: () => _scanGroupQr(context),
                     icon: const Icon(Icons.qr_code_scanner, size: 18),
-                    label: const Text('Scan QR'),
+                    label: Text(_s(context, 'settings.scanQr')),
                   ),
               ],
             ),
@@ -497,8 +508,8 @@ class _GroupBrowser extends StatelessWidget {
             if (groups.isEmpty)
               Text(
                 searchController.text.trim().isEmpty
-                    ? 'No groups yet. Create or join one.'
-                    : 'No groups match your search.',
+                    ? _s(context, 'settings.noGroups')
+                    : _s(context, 'settings.noGroupMatches'),
                 style: TextStyle(
                   color: palette.textMuted,
                   fontWeight: FontWeight.w700,
@@ -598,7 +609,7 @@ class _GroupBrowser extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(_s(context, 'common.cancel')),
             ),
             FilledButton(
               onPressed: () {
@@ -667,7 +678,7 @@ class _GroupListTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    '${group.groupCode} · ${group.isOwner ? "Admin" : "Member"} · ${group.memberCount} players',
+                    '${group.groupCode} - ${group.isOwner ? _s(context, 'settings.groupAdmin') : _s(context, 'settings.member')} - ${group.memberCount}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -788,7 +799,7 @@ class _GroupDetailScreen extends StatelessWidget {
             return AlertDialog(
               backgroundColor: palette.surface,
               title: Text(
-                'Import stats',
+                _s(context, 'settings.importStats'),
                 style: TextStyle(
                   color: palette.text,
                   fontWeight: FontWeight.w900,
@@ -842,9 +853,8 @@ class _GroupDetailScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _ImportModeTile(
                       selected: mode == GroupImportMode.addToCurrent,
-                      title: 'Add to current stats',
-                      subtitle:
-                          'Keeps current stats and adds values from the group.',
+                      title: _s(context, 'settings.importAdd'),
+                      subtitle: _s(context, 'settings.importAddDescription'),
                       palette: palette,
                       onTap: () {
                         setDialogState(() {
@@ -854,9 +864,11 @@ class _GroupDetailScreen extends StatelessWidget {
                     ),
                     _ImportModeTile(
                       selected: mode == GroupImportMode.useSourceValues,
-                      title: 'Use source group stats',
-                      subtitle:
-                          'Replaces matching player stats with source values.',
+                      title: _s(context, 'settings.importUseSource'),
+                      subtitle: _s(
+                        context,
+                        'settings.importUseSourceDescription',
+                      ),
                       palette: palette,
                       onTap: () {
                         setDialogState(() {
@@ -870,7 +882,7 @@ class _GroupDetailScreen extends StatelessWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(_s(context, 'common.cancel')),
                 ),
                 FilledButton(
                   onPressed: selectedGroup == null
@@ -881,7 +893,7 @@ class _GroupDetailScreen extends StatelessWidget {
                             mode: mode,
                           ),
                         ),
-                  child: const Text('Import'),
+                  child: Text(_s(context, 'common.import')),
                 ),
               ],
             );
@@ -902,8 +914,8 @@ class _GroupDetailScreen extends StatelessWidget {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text(
-          'Import completed',
+        content: Text(
+          _s(context, 'settings.importCompleted'),
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
         behavior: SnackBarBehavior.floating,
@@ -935,7 +947,7 @@ class _GroupDetailScreen extends StatelessWidget {
             if (activeSessionId == null) {
               return Center(
                 child: Text(
-                  'Select a group first.',
+                  _s(context, 'settings.selectGroupFirst'),
                   style: TextStyle(color: palette.textMuted),
                 ),
               );
@@ -959,7 +971,7 @@ class _GroupDetailScreen extends StatelessWidget {
                       OutlinedButton.icon(
                         onPressed: controller.leaveGroup,
                         icon: const Icon(Icons.logout, size: 18),
-                        label: const Text('Leave'),
+                        label: Text(_s(context, 'settings.leave')),
                       ),
                     ],
                   ),
@@ -981,19 +993,19 @@ class _GroupDetailScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _SectionTitle(
-                            title: 'Game Mode',
+                            title: _s(context, 'settings.gameMode'),
                             icon: Icons.videogame_asset,
                             palette: palette,
                           ),
                           SegmentedButton<GameMode>(
-                            segments: const [
+                            segments: [
                               ButtonSegment(
                                 value: GameMode.x01,
                                 label: Text('X01'),
                               ),
                               ButtonSegment(
                                 value: GameMode.countUp,
-                                label: Text('Count Up'),
+                                label: Text(_s(context, 'settings.countUp')),
                               ),
                             ],
                             selected: {settings.mode},
@@ -1008,7 +1020,7 @@ class _GroupDetailScreen extends StatelessWidget {
                           const SizedBox(height: 16),
                           if (settings.mode == GameMode.x01) ...[
                             _SectionTitle(
-                              title: 'Starting Score',
+                              title: _s(context, 'settings.startingScore'),
                               icon: Icons.score,
                               palette: palette,
                             ),
@@ -1039,23 +1051,23 @@ class _GroupDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             _SectionTitle(
-                              title: 'Finish Rule',
+                              title: _s(context, 'settings.finishRule'),
                               icon: Icons.flag,
                               palette: palette,
                             ),
                             SegmentedButton<OutRule>(
-                              segments: const [
+                              segments: [
                                 ButtonSegment(
                                   value: OutRule.singleOut,
-                                  label: Text('Single'),
+                                  label: Text(_s(context, 'settings.single')),
                                 ),
                                 ButtonSegment(
                                   value: OutRule.doubleOut,
-                                  label: Text('Double'),
+                                  label: Text(_s(context, 'settings.double')),
                                 ),
                                 ButtonSegment(
                                   value: OutRule.masterOut,
-                                  label: Text('Master'),
+                                  label: Text(_s(context, 'settings.master')),
                                 ),
                               ],
                               selected: {settings.outRule},
@@ -1069,19 +1081,21 @@ class _GroupDetailScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             _SectionTitle(
-                              title: 'Checkout Advice',
+                              title: _s(context, 'settings.checkoutAdvice'),
                               icon: Icons.psychology_alt,
                               palette: palette,
                             ),
                             SegmentedButton<CheckoutStrategy>(
-                              segments: const [
+                              segments: [
                                 ButtonSegment(
                                   value: CheckoutStrategy.professional,
-                                  label: Text('Professional'),
+                                  label: Text(
+                                    _s(context, 'settings.professional'),
+                                  ),
                                 ),
                                 ButtonSegment(
                                   value: CheckoutStrategy.adaptive,
-                                  label: Text('Adaptive'),
+                                  label: Text(_s(context, 'settings.adaptive')),
                                 ),
                               ],
                               selected: {controller.checkoutStrategy},
@@ -1098,12 +1112,12 @@ class _GroupDetailScreen extends StatelessWidget {
                     const SizedBox(height: 20),
                   ],
                   _SectionTitle(
-                    title: 'Device Mode',
+                    title: _s(context, 'settings.deviceMode'),
                     icon: Icons.devices,
                     palette: palette,
                   ),
                   Text(
-                    'Choose who can enter throws and scores for this group.',
+                    _s(context, 'settings.deviceModeDescription'),
                     style: TextStyle(
                       color: palette.textMuted,
                       fontWeight: FontWeight.w600,
@@ -1127,7 +1141,7 @@ class _GroupDetailScreen extends StatelessWidget {
                     runSpacing: 10,
                     children: [
                       Text(
-                        'Players Lineup',
+                        _s(context, 'settings.playersLineup'),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w900,
                           color: palette.text,
@@ -1140,7 +1154,7 @@ class _GroupDetailScreen extends StatelessWidget {
                         ),
                         onPressed: canManageLineup ? onAddPlayer : null,
                         icon: const Icon(Icons.person_add, size: 18),
-                        label: const Text('Add Player'),
+                        label: Text(_s(context, 'settings.addPlayer')),
                       ),
                       if (controller.canManageLineup &&
                           controller.userGroups.any(
@@ -1151,7 +1165,7 @@ class _GroupDetailScreen extends StatelessWidget {
                           onPressed: () =>
                               _showImportStatsDialog(context, palette),
                           icon: const Icon(Icons.download, size: 18),
-                          label: const Text('Import stats'),
+                          label: Text(_s(context, 'settings.importStats')),
                         ),
                     ],
                   ),
@@ -1200,8 +1214,11 @@ class _GroupDetailScreen extends StatelessWidget {
                           ),
                           subtitle: Text(
                             [
-                              if (isCurrent) 'Now throwing',
-                              isOwner ? 'Group admin' : 'Member',
+                              if (isCurrent)
+                                _s(context, 'settings.nowThrowing'),
+                              isOwner
+                                  ? _s(context, 'settings.groupAdmin')
+                                  : _s(context, 'settings.member'),
                             ].join(' - '),
                             style: TextStyle(
                               color: isCurrent || isOwner
@@ -1289,7 +1306,7 @@ class _ActiveGroupDetails extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Group code',
+                  _s(context, 'settings.groupCode'),
                   style: TextStyle(
                     color: palette.textMuted,
                     fontWeight: FontWeight.w800,
@@ -1311,11 +1328,13 @@ class _ActiveGroupDetails extends StatelessWidget {
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: activeSessionId));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Group code copied')),
+                      SnackBar(
+                        content: Text(_s(context, 'settings.codeCopied')),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Copy code'),
+                  label: Text(_s(context, 'settings.copyCode')),
                 ),
               ],
             ),
@@ -1342,7 +1361,7 @@ class _QrJoinScannerScreenState extends State<_QrJoinScannerScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan group QR'),
+        title: Text(_s(context, 'settings.scanGroupQr')),
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
@@ -1383,10 +1402,10 @@ class _QrJoinScannerScreenState extends State<_QrJoinScannerScreen> {
                 color: Colors.black.withValues(alpha: 0.7),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Padding(
-                padding: EdgeInsets.all(14),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
                 child: Text(
-                  'Point the camera at a group QR code.',
+                  _s(context, 'settings.scanHint'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,

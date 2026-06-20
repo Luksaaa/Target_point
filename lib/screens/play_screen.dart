@@ -11,6 +11,9 @@ import '../theme/app_palette.dart';
 import '../widgets/dartboard.dart';
 import '../widgets/player_avatar.dart';
 
+String _p(BuildContext context, String key) =>
+    AppLocalizations.of(context).t(key);
+
 class PlayScreen extends StatefulWidget {
   const PlayScreen({
     required this.controller,
@@ -81,7 +84,10 @@ class _PlayScreenState extends State<PlayScreen> {
                   ],
                 ),
                 child: Text(
-                  'Not your turn. Waiting for $playerName.',
+                  _p(
+                    context,
+                    'play.notYourTurn',
+                  ).replaceAll('{name}', playerName),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -271,7 +277,12 @@ class _CurrentTurnHeader extends StatelessWidget {
       builder: (context) => AlertDialog(
         backgroundColor: palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Dart ${index + 1} score'),
+        title: Text(
+          _p(
+            context,
+            'play.dartScoreTitle',
+          ).replaceAll('{number}', '${index + 1}'),
+        ),
         content: TextField(
           controller: inputController,
           autofocus: true,
@@ -291,11 +302,11 @@ class _CurrentTurnHeader extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: Text(_p(context, 'common.cancel')),
           ),
           FilledButton(
             onPressed: () => _saveManualDart(context, index, inputController),
-            child: const Text('Save'),
+            child: Text(_p(context, 'common.save')),
           ),
         ],
       ),
@@ -441,7 +452,9 @@ class _CurrentTurnHeader extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    isDarts ? 'Turn total: $turnTotal' : 'Live leaderboard',
+                    isDarts
+                        ? '${_p(context, 'play.turnTotal')}: $turnTotal'
+                        : _p(context, 'play.liveLeaderboard'),
                     style: TextStyle(
                       color: palette.text,
                       fontWeight: FontWeight.w900,
@@ -450,7 +463,7 @@ class _CurrentTurnHeader extends StatelessWidget {
                 ),
                 if (showCheckoutHint)
                   Text(
-                    'Out: $checkoutHint',
+                    '${_p(context, 'play.out')}: $checkoutHint',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

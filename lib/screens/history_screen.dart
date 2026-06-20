@@ -117,7 +117,7 @@ class HistoryScreen extends StatelessWidget {
                           ],
                         ),
                         subtitle: Text(
-                          '${isX01 ? "X01 (${match.settings.startingScore})" : "Count Up"} | $dateStr',
+                          '${isX01 ? "X01 (${match.settings.startingScore})" : l10n.t('settings.countUp')} | $dateStr',
                           style: TextStyle(
                             color: palette.textMuted,
                             fontSize: 12,

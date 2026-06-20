@@ -9,6 +9,9 @@ import '../models/user_session.dart';
 import '../theme/app_palette.dart';
 import '../widgets/responsive_content.dart';
 
+String _a(BuildContext context, String key) =>
+    AppLocalizations.of(context).t(key);
+
 class AccountScreen extends StatefulWidget {
   const AccountScreen({
     required this.controller,
@@ -73,7 +76,6 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
 
     return ListenableBuilder(
       listenable: widget.controller,
@@ -95,7 +97,7 @@ class _AccountScreenState extends State<AccountScreen> {
               onPressed: () => Navigator.of(context).pop(),
             ),
             title: Text(
-              l10n.t('account.title'),
+              _a(context, 'account.title'),
               style: theme.textTheme.titleMedium?.copyWith(
                 color: palette.text,
                 fontWeight: FontWeight.w900,
@@ -119,31 +121,31 @@ class _AccountScreenState extends State<AccountScreen> {
                   child: Row(
                     children: [
                       _SectionChip(
-                        label: l10n.t('account.profile'),
+                        label: _a(context, 'account.profile'),
                         icon: Icons.person_outline,
                         selected: _selectedSection == 0,
                         onTap: () => setState(() => _selectedSection = 0),
                       ),
                       _SectionChip(
-                        label: l10n.t('account.login'),
+                        label: _a(context, 'account.login'),
                         icon: Icons.login,
                         selected: _selectedSection == 1,
                         onTap: () => setState(() => _selectedSection = 1),
                       ),
                       _SectionChip(
-                        label: 'Settings',
+                        label: _a(context, 'account.settings'),
                         icon: Icons.tune,
                         selected: _selectedSection == 2,
                         onTap: () => setState(() => _selectedSection = 2),
                       ),
                       _SectionChip(
-                        label: l10n.t('account.social'),
+                        label: _a(context, 'account.social'),
                         icon: Icons.group_outlined,
                         selected: _selectedSection == 3,
                         onTap: () => setState(() => _selectedSection = 3),
                       ),
                       _SectionChip(
-                        label: 'About',
+                        label: _a(context, 'common.about'),
                         icon: Icons.info_outline,
                         selected: _selectedSection == 4,
                         onTap: () => setState(() => _selectedSection = 4),
@@ -161,7 +163,10 @@ class _AccountScreenState extends State<AccountScreen> {
                         switch (_selectedSection) {
                           0 => _buildProfileSection(user, palette),
                           1 => _buildLoginSection(user, palette),
-                          2 => _buildSettingsSection(l10n, palette),
+                          2 => _buildSettingsSection(
+                            AppLocalizations.of(context),
+                            palette,
+                          ),
                           3 => _buildSocialSection(palette),
                           _ => _buildAboutSection(palette),
                         },
@@ -216,7 +221,9 @@ class _AccountScreenState extends State<AccountScreen> {
               Expanded(
                 child: TextField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Profile name'),
+                  decoration: InputDecoration(
+                    labelText: _a(context, 'profile.name'),
+                  ),
                 ),
               ),
             ],
@@ -226,7 +233,7 @@ class _AccountScreenState extends State<AccountScreen> {
             style: FilledButton.styleFrom(backgroundColor: palette.primary),
             onPressed: _saveProfile,
             icon: const Icon(Icons.save),
-            label: const Text('Save profile'),
+            label: Text(_a(context, 'profile.save')),
           ),
         ],
       ),
@@ -249,7 +256,9 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  user.isGuest ? 'Guest mode' : 'Signed in',
+                  user.isGuest
+                      ? _a(context, 'account.guestMode')
+                      : _a(context, 'account.signedIn'),
                   style: TextStyle(
                     color: palette.text,
                     fontWeight: FontWeight.w900,
@@ -276,7 +285,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   : widget.controller.signInWithGoogle,
               icon: const Icon(Icons.g_mobiledata_rounded),
               label: Text(
-                isSigningIn ? 'Signing in...' : 'Continue with Google',
+                isSigningIn
+                    ? _a(context, 'account.signingIn')
+                    : _a(context, 'account.google'),
               ),
             )
           else
@@ -284,14 +295,14 @@ class _AccountScreenState extends State<AccountScreen> {
               style: FilledButton.styleFrom(backgroundColor: palette.primary),
               onPressed: widget.controller.signOut,
               icon: const Icon(Icons.logout),
-              label: const Text('Sign out'),
+              label: Text(_a(context, 'account.signOut')),
             ),
           if (!user.isGuest) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: widget.controller.signInWithGoogle,
               icon: const Icon(Icons.g_mobiledata_rounded),
-              label: const Text('Switch Google account'),
+              label: Text(_a(context, 'account.switchGoogle')),
             ),
           ],
           if (widget.controller.accountMessage != null) ...[
@@ -332,7 +343,7 @@ class _AccountScreenState extends State<AccountScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            l10n.t('common.theme'),
+            _a(context, 'common.theme'),
             style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
@@ -340,11 +351,11 @@ class _AccountScreenState extends State<AccountScreen> {
             segments: [
               ButtonSegment(
                 value: ThemeMode.light,
-                label: Text(l10n.t('common.light')),
+                label: Text(_a(context, 'common.light')),
               ),
               ButtonSegment(
                 value: ThemeMode.dark,
-                label: Text(l10n.t('common.dark')),
+                label: Text(_a(context, 'common.dark')),
               ),
             ],
             selected: {resolvedThemeMode},
@@ -353,7 +364,7 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            l10n.t('common.language'),
+            _a(context, 'common.language'),
             style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
@@ -394,8 +405,8 @@ class _AccountScreenState extends State<AccountScreen> {
               Expanded(
                 child: TextField(
                   controller: _followController,
-                  decoration: const InputDecoration(
-                    labelText: 'Follow user (handle or name)',
+                  decoration: InputDecoration(
+                    labelText: _a(context, 'account.followUser'),
                     isDense: true,
                   ),
                   onSubmitted: (_) => _followUser(),
@@ -412,7 +423,7 @@ class _AccountScreenState extends State<AccountScreen> {
           const SizedBox(height: 16),
           if (widget.controller.following.isEmpty)
             Text(
-              'No followed users yet.',
+              _a(context, 'account.noFollowed'),
               style: TextStyle(
                 color: palette.textMuted,
                 fontWeight: FontWeight.w700,
@@ -456,7 +467,7 @@ class _AccountScreenState extends State<AccountScreen> {
           style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
         ),
         subtitle: Text(
-          'Version 1.0.1',
+          '${_a(context, 'common.version')} 1.0.1',
           style: TextStyle(color: palette.textMuted),
         ),
       ),
@@ -469,13 +480,13 @@ class _AccountScreenState extends State<AccountScreen> {
       builder: (context) {
         final palette = AppPalette.of(context);
         return AlertDialog(
-          title: const Text('Profile photo'),
+          title: Text(_a(context, 'profile.photo')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Choose from gallery'),
+                title: Text(_a(context, 'profile.chooseGallery')),
                 onTap: () {
                   Navigator.of(context).pop();
                   _pickProfileImage(ImageSource.gallery);
@@ -483,7 +494,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Take photo'),
+                title: Text(_a(context, 'profile.takePhoto')),
                 onTap: () {
                   Navigator.of(context).pop();
                   _pickProfileImage(ImageSource.camera);
@@ -501,12 +512,12 @@ class _AccountScreenState extends State<AccountScreen> {
                   photoUrl: '',
                 );
               },
-              child: const Text('Remove'),
+              child: Text(_a(context, 'common.remove')),
             ),
             TextButton(
               style: TextButton.styleFrom(foregroundColor: palette.primary),
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(_a(context, 'common.cancel')),
             ),
           ],
         );
