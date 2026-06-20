@@ -228,6 +228,7 @@ class AuthRepository {
     await _db.child('users/$ownerUserId/following/${followedUser.id}').set({
       'displayName': followedUser.displayName,
       'handle': followedUser.handle,
+      'email': followedUser.email,
       'followedAt': ServerValue.timestamp,
     });
 
@@ -238,8 +239,16 @@ class AuthRepository {
   }
 
   Future<FollowedUser?> findPublicUser(String query) async {
+    final matches = await searchPublicUsers(query, limit: 1);
+    return matches.isEmpty ? null : matches.first;
+  }
+
+  Future<List<FollowedUser>> searchPublicUsers(
+    String query, {
+    int limit = 8,
+  }) async {
     if (!_firebaseReady) {
-      return null;
+      return const [];
     }
 
     final normalizedQuery = query
@@ -247,15 +256,16 @@ class AuthRepository {
         .replaceFirst(RegExp(r'^@'), '')
         .toLowerCase();
     if (normalizedQuery.isEmpty) {
-      return null;
+      return const [];
     }
 
     final snapshot = await _db.child('publicUsers').get();
     final value = snapshot.value;
     if (value is! Map) {
-      return null;
+      return const [];
     }
 
+    final results = <FollowedUser>[];
     for (final entry in Map<String, dynamic>.from(value).entries) {
       final userId = entry.key;
       final userValue = entry.value;
@@ -268,18 +278,32 @@ class AuthRepository {
         continue;
       }
       final handle = '@${userId.toLowerCase()}';
-      if (userId.toLowerCase() == normalizedQuery ||
-          displayName.toLowerCase() == normalizedQuery ||
-          handle.substring(1) == normalizedQuery) {
-        return FollowedUser(
-          id: userId,
-          displayName: displayName,
-          handle: handle,
+      final email = (profile['email'] as String?)?.trim();
+      final emailLower =
+          (profile['emailLower'] as String?)?.trim().toLowerCase() ??
+          email?.toLowerCase();
+      final haystacks = [
+        userId.toLowerCase(),
+        displayName.toLowerCase(),
+        handle.substring(1),
+        ?emailLower,
+      ];
+      if (haystacks.any((value) => value.contains(normalizedQuery))) {
+        results.add(
+          FollowedUser(
+            id: userId,
+            displayName: displayName,
+            handle: handle,
+            email: email,
+          ),
         );
+        if (results.length >= limit) {
+          break;
+        }
       }
     }
 
-    return null;
+    return results;
   }
 
   Future<void> saveSession(
@@ -518,6 +542,8 @@ class AuthRepository {
 
     await _db.child('publicUsers/${session.id}').update({
       'displayName': session.displayName,
+      'email': session.email,
+      'emailLower': session.email?.toLowerCase(),
       'avatarColorValue': session.avatarColorValue,
       'photoUrl': _databaseSafePhotoUrl(session.photoUrl),
       'updatedAt': ServerValue.timestamp,

@@ -275,12 +275,12 @@ class _CurrentTurnHeader extends StatelessWidget {
 
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: palette.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           _p(
-            context,
+            dialogContext,
             'play.dartScoreTitle',
           ).replaceAll('{number}', '${index + 1}'),
         ),
@@ -298,16 +298,18 @@ class _CurrentTurnHeader extends StatelessWidget {
             filled: true,
             fillColor: palette.surfaceMuted,
           ),
-          onSubmitted: (_) => _saveManualDart(context, index, inputController),
+          onSubmitted: (_) =>
+              _saveManualDart(context, dialogContext, index, inputController),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(_p(context, 'common.cancel')),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(_p(dialogContext, 'common.cancel')),
           ),
           FilledButton(
-            onPressed: () => _saveManualDart(context, index, inputController),
-            child: Text(_p(context, 'common.save')),
+            onPressed: () =>
+                _saveManualDart(context, dialogContext, index, inputController),
+            child: Text(_p(dialogContext, 'common.save')),
           ),
         ],
       ),
@@ -315,7 +317,8 @@ class _CurrentTurnHeader extends StatelessWidget {
   }
 
   void _saveManualDart(
-    BuildContext context,
+    BuildContext parentContext,
+    BuildContext dialogContext,
     int index,
     TextEditingController inputController,
   ) {
@@ -323,8 +326,19 @@ class _CurrentTurnHeader extends StatelessWidget {
     if (hit == null) {
       return;
     }
+    final shouldOpenNext =
+        index == controller.currentTurn.length &&
+        controller.currentTurn.length < 2;
     controller.setManualDartHit(index, hit);
-    Navigator.of(context).pop();
+    Navigator.of(dialogContext).pop();
+    if (shouldOpenNext) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!parentContext.mounted) {
+          return;
+        }
+        _showManualDartDialog(parentContext, index + 1);
+      });
+    }
   }
 
   DartHit? _parseManualDartHit(String rawValue) {

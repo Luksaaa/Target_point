@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../models/game_state_controller.dart';
 import '../models/sport_game.dart';
+import '../models/user_session.dart';
 import '../theme/app_palette.dart';
 import '../widgets/responsive_content.dart';
 
@@ -308,34 +309,165 @@ class _GameHubScreenState extends State<GameHubScreen> {
     final l10n = AppLocalizations.of(context);
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: palette.surface,
-        title: Text(l10n.t('account.social')),
-        content: TextField(
-          controller: followController,
-          autofocus: true,
-          decoration: InputDecoration(labelText: l10n.t('account.followUser')),
-          onSubmitted: (value) {
-            _followUser(value);
-            Navigator.of(dialogContext).pop();
+      builder: (dialogContext) {
+        var results = <FollowedUser>[];
+        var isSearching = false;
+        var searchSerial = 0;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> search(String value) async {
+              searchSerial += 1;
+              final serial = searchSerial;
+              if (value.trim().length < 2) {
+                setDialogState(() {
+                  results = const [];
+                  isSearching = false;
+                });
+                return;
+              }
+              setDialogState(() {
+                isSearching = true;
+              });
+              final matches =
+                  await widget.controller?.searchFollowableUsers(value) ??
+                  const <FollowedUser>[];
+              if (!context.mounted || serial != searchSerial) {
+                return;
+              }
+              setDialogState(() {
+                results = matches;
+                isSearching = false;
+              });
+            }
+
+            Future<void> followResult(FollowedUser user) async {
+              await widget.controller?.followExistingUser(user);
+              if (mounted) {
+                setState(() {});
+              }
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+            }
+
+            return AlertDialog(
+              backgroundColor: palette.surface,
+              title: Text(l10n.t('account.social')),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: followController,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.t('account.followUser'),
+                      ),
+                      onChanged: search,
+                      onSubmitted: (value) async {
+                        if (results.isNotEmpty) {
+                          await followResult(results.first);
+                          return;
+                        }
+                        _followUser(value);
+                        if (dialogContext.mounted) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      child: Builder(
+                        builder: (context) {
+                          if (isSearching) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: palette.primary,
+                                ),
+                              ),
+                            );
+                          }
+                          if (followController.text.trim().length >= 2 &&
+                              results.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Text(
+                                l10n.t('account.noUserResults'),
+                                style: TextStyle(
+                                  color: palette.textMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            );
+                          }
+                          return ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: results.length,
+                            separatorBuilder: (_, _) =>
+                                Divider(color: palette.border),
+                            itemBuilder: (context, index) {
+                              final user = results[index];
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  backgroundColor: palette.primarySoft,
+                                  foregroundColor: palette.primary,
+                                  child: Text(
+                                    user.displayName
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                                  ),
+                                ),
+                                title: Text(
+                                  user.displayName,
+                                  style: TextStyle(
+                                    color: palette.text,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  user.email ?? user.handle,
+                                  style: TextStyle(color: palette.textMuted),
+                                ),
+                                trailing: Icon(
+                                  Icons.person_add_alt_1,
+                                  color: palette.primary,
+                                ),
+                                onTap: () => followResult(user),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.t('common.cancel')),
+                ),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: palette.primary,
+                  ),
+                  onPressed: results.isNotEmpty
+                      ? () => followResult(results.first)
+                      : null,
+                  icon: const Icon(Icons.person_add_alt_1),
+                  label: Text(l10n.t('common.add')),
+                ),
+              ],
+            );
           },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.t('common.cancel')),
-          ),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: palette.primary),
-            onPressed: () {
-              _followUser(followController.text);
-              Navigator.of(dialogContext).pop();
-            },
-            icon: const Icon(Icons.person_add_alt_1),
-            label: Text(l10n.t('common.add')),
-          ),
-        ],
-      ),
+        );
+      },
     );
     // Keep this alive through the dialog route closing animation.
   }

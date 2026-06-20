@@ -47,9 +47,11 @@ class FollowedUser {
     required this.id,
     required this.displayName,
     required this.handle,
+    this.email,
   });
 
   final String id;
   final String displayName;
   final String handle;
+  final String? email;
 }

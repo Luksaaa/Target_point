@@ -1177,6 +1177,41 @@ class GameStateController extends ChangeNotifier {
         });
   }
 
+  Future<List<FollowedUser>> searchFollowableUsers(String query) async {
+    if (_currentUser.isGuest || query.trim().length < 2) {
+      return const [];
+    }
+    final results = await _authRepository.searchPublicUsers(query);
+    return results
+        .where(
+          (user) =>
+              user.id != _currentUser.id &&
+              !_following.any((followed) => followed.id == user.id),
+        )
+        .toList();
+  }
+
+  Future<void> followExistingUser(FollowedUser followedUser) async {
+    if (_currentUser.isGuest ||
+        followedUser.id == _currentUser.id ||
+        _following.any((user) => user.id == followedUser.id)) {
+      return;
+    }
+
+    _addFollowedUser(followedUser);
+    _accountMessage = 'Following ${followedUser.displayName}.';
+    notifyListeners();
+    try {
+      await _authRepository.followUser(
+        ownerUserId: _currentUser.id,
+        followedUser: followedUser,
+      );
+    } catch (error) {
+      _accountMessage = 'Could not sync following to Firebase: $error';
+      notifyListeners();
+    }
+  }
+
   void _addFollowedUser(FollowedUser followedUser) {
     _following.add(followedUser);
   }
