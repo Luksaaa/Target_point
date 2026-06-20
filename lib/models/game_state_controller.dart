@@ -52,6 +52,8 @@ class GroupMember {
 
 enum GroupDeviceMode { ownDevice, sharedDevices, adminDevice }
 
+enum CheckoutStrategy { professional, adaptive }
+
 class UserGameGroup {
   const UserGameGroup({
     required this.sessionId,
@@ -162,6 +164,8 @@ class GameStateController extends ChangeNotifier {
   String get activeSessionName => _activeSessionName;
   GroupDeviceMode _deviceMode = GroupDeviceMode.ownDevice;
   GroupDeviceMode get deviceMode => _deviceMode;
+  CheckoutStrategy _checkoutStrategy = CheckoutStrategy.professional;
+  CheckoutStrategy get checkoutStrategy => _checkoutStrategy;
   final Map<String, Map<String, Object?>> _groupMembers = {};
   final List<UserGameGroup> _userGroups = [];
   List<UserGameGroup> get userGroups => List.unmodifiable(_userGroups);
@@ -755,6 +759,7 @@ class GameStateController extends ChangeNotifier {
     _matchMessage = null;
     _currentPlayerIndex = 0;
     _deviceMode = GroupDeviceMode.ownDevice;
+    _checkoutStrategy = CheckoutStrategy.professional;
     _clientRevision = 0;
     _lastLocalSyncAt = 0;
     _players = [
@@ -939,6 +944,7 @@ class GameStateController extends ChangeNotifier {
       'sportId': gameId,
       'sportName': gameName,
       'deviceMode': _deviceMode.name,
+      'checkoutStrategy': _checkoutStrategy.name,
       'hostUserId': _liveHostUserId ?? _currentUser.id,
       'ownerUserId': _liveHostUserId ?? _currentUser.id,
       'updatedByUserId': _currentUser.id,
@@ -988,6 +994,10 @@ class GameStateController extends ChangeNotifier {
       _deviceMode = GroupDeviceMode.values.firstWhere(
         (mode) => mode.name == payload['deviceMode'],
         orElse: () => GroupDeviceMode.ownDevice,
+      );
+      _checkoutStrategy = CheckoutStrategy.values.firstWhere(
+        (strategy) => strategy.name == payload['checkoutStrategy'],
+        orElse: () => CheckoutStrategy.professional,
       );
       if (remoteRevision > _clientRevision) {
         _clientRevision = remoteRevision;
@@ -1176,6 +1186,95 @@ class GameStateController extends ChangeNotifier {
       return;
     }
     _deviceMode = mode;
+    _syncLiveMatch();
+    notifyListeners();
+  }
+
+  void updateCheckoutStrategy(CheckoutStrategy strategy) {
+    if (isLiveMatchActive && !canManageGroupMembers) {
+      _liveMatchMessage = 'Only the group admin can change checkout advice.';
+      notifyListeners();
+      return;
+    }
+    _checkoutStrategy = strategy;
+    _syncLiveMatch();
+    notifyListeners();
+  }
+
+  Future<void> importStatsFromGroup(String sessionId) async {
+    if (!_cloudFeaturesAvailable || _currentUser.isGuest) {
+      _liveMatchMessage = 'Sign in to import group stats.';
+      notifyListeners();
+      return;
+    }
+    if (!isLiveMatchActive) {
+      _liveMatchMessage = 'Open a group before importing stats.';
+      notifyListeners();
+      return;
+    }
+    if (!canManageGroupMembers) {
+      _liveMatchMessage = 'Only the group admin can import stats.';
+      notifyListeners();
+      return;
+    }
+    if (sessionId == _liveMatchId) {
+      _liveMatchMessage = 'Choose a different group to import from.';
+      notifyListeners();
+      return;
+    }
+
+    final payload = await _authRepository.fetchSession(sessionId);
+    if (payload == null) {
+      _liveMatchMessage = 'Source group was not found.';
+      notifyListeners();
+      return;
+    }
+
+    final sourcePlayers = _asList(payload['players'])
+        .whereType<Map>()
+        .map((value) => _playerFromMap(Map<String, dynamic>.from(value)))
+        .toList();
+    var imported = 0;
+
+    for (final source in sourcePlayers) {
+      final sourceStats = _persistentStatsForNewMatch(source.stats);
+      if (sourceStats.isEmpty && source.turns.isEmpty) {
+        continue;
+      }
+
+      final targetIndex = _players.indexWhere((player) {
+        final sourceUserId = source.userId;
+        if (sourceUserId != null && sourceUserId.isNotEmpty) {
+          return player.userId == sourceUserId;
+        }
+        return player.name.trim().toLowerCase() ==
+            source.name.trim().toLowerCase();
+      });
+
+      if (targetIndex == -1) {
+        _players.add(
+          source.copyWith(
+            remaining: _settings.mode == GameMode.x01 && isDartsGame
+                ? _settings.startingScore
+                : 0,
+            totalScored: 0,
+            turns: const [],
+            isWinner: false,
+            stats: sourceStats,
+          ),
+        );
+      } else {
+        final target = _players[targetIndex];
+        _players[targetIndex] = target.copyWith(
+          stats: _mergedStats(target.stats, sourceStats),
+        );
+      }
+      imported++;
+    }
+
+    _liveMatchMessage = imported == 0
+        ? 'No stats were available to import.'
+        : 'Imported stats for $imported players.';
     _syncLiveMatch();
     notifyListeners();
   }
@@ -1575,7 +1674,37 @@ class GameStateController extends ChangeNotifier {
         ),
       );
     }
+    if (_checkoutStrategy == CheckoutStrategy.adaptive &&
+        currentPlayer.numberHitCounts.isNotEmpty) {
+      final hitCounts = currentPlayer.numberHitCounts;
+      hits.sort((a, b) {
+        final countCompare = (hitCounts[b.number] ?? 0).compareTo(
+          hitCounts[a.number] ?? 0,
+        );
+        if (countCompare != 0) {
+          return countCompare;
+        }
+        final bandCompare = _checkoutBandRank(
+          a.band,
+        ).compareTo(_checkoutBandRank(b.band));
+        if (bandCompare != 0) {
+          return bandCompare;
+        }
+        return b.score.compareTo(a.score);
+      });
+    }
     return hits;
+  }
+
+  int _checkoutBandRank(SegmentBand band) {
+    return switch (band) {
+      SegmentBand.double => 0,
+      SegmentBand.triple => 1,
+      SegmentBand.bull => 2,
+      SegmentBand.outerBull => 3,
+      SegmentBand.single => 4,
+      SegmentBand.miss => 5,
+    };
   }
 
   void _advanceTurn() {
@@ -1691,11 +1820,24 @@ class GameStateController extends ChangeNotifier {
   }
 
   Map<String, int> _persistentStatsForNewMatch(Map<String, int> stats) {
-    final wins = stats['wins'];
-    if (wins == null || wins <= 0) {
-      return const {};
+    final persistent = <String, int>{};
+    for (final entry in stats.entries) {
+      if (entry.value > 0) {
+        persistent[entry.key] = entry.value;
+      }
     }
-    return {'wins': wins};
+    return persistent;
+  }
+
+  Map<String, int> _mergedStats(
+    Map<String, int> current,
+    Map<String, int> imported,
+  ) {
+    final merged = Map<String, int>.from(current);
+    for (final entry in imported.entries) {
+      merged[entry.key] = (merged[entry.key] ?? 0) + entry.value;
+    }
+    return merged;
   }
 
   @override

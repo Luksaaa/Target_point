@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/game_state_controller.dart';
@@ -354,6 +356,24 @@ class _GroupBrowser extends StatelessWidget {
   final ValueChanged<UserGameGroup> onOpenGroup;
   final AppPalette palette;
 
+  bool get _canScanQr {
+    if (kIsWeb) {
+      return true;
+    }
+    return defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS;
+  }
+
+  Future<void> _scanGroupQr(BuildContext context) async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(builder: (_) => const _QrJoinScannerScreen()),
+    );
+    if (code == null || !context.mounted) {
+      return;
+    }
+    await controller.joinCloudSession(code);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -465,6 +485,12 @@ class _GroupBrowser extends StatelessWidget {
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Join'),
                 ),
+                if (_canScanQr)
+                  OutlinedButton.icon(
+                    onPressed: () => _scanGroupQr(context),
+                    icon: const Icon(Icons.qr_code_scanner, size: 18),
+                    label: const Text('Scan QR'),
+                  ),
               ],
             ),
             const SizedBox(height: 18),
@@ -674,6 +700,69 @@ class _GroupDetailScreen extends StatelessWidget {
   final void Function(VoidCallback onChange) onConfirmSettingsChange;
   final void Function(PlayerScore player) onConfirmRemovePlayer;
 
+  Future<void> _showImportStatsDialog(
+    BuildContext context,
+    AppPalette palette,
+  ) async {
+    final groups = controller.userGroups
+        .where((group) => group.sessionId != controller.liveMatchId)
+        .toList();
+    if (groups.isEmpty) {
+      return;
+    }
+
+    final selected = await showDialog<UserGameGroup>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: palette.surface,
+          title: Text(
+            'Import stats',
+            style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: ListView.separated(
+              shrinkWrap: true,
+              itemCount: groups.length,
+              separatorBuilder: (_, _) => Divider(color: palette.border),
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.groups, color: palette.primary),
+                  title: Text(
+                    group.sessionName,
+                    style: TextStyle(
+                      color: palette.text,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    group.groupCode,
+                    style: TextStyle(color: palette.textMuted),
+                  ),
+                  onTap: () => Navigator.of(dialogContext).pop(group),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (selected == null) {
+      return;
+    }
+    await controller.importStatsFromGroup(selected.sessionId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
@@ -828,6 +917,30 @@ class _GroupDetailScreen extends StatelessWidget {
                                 });
                               },
                             ),
+                            const SizedBox(height: 16),
+                            _SectionTitle(
+                              title: 'Checkout Advice',
+                              icon: Icons.psychology_alt,
+                              palette: palette,
+                            ),
+                            SegmentedButton<CheckoutStrategy>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: CheckoutStrategy.professional,
+                                  label: Text('Professional'),
+                                ),
+                                ButtonSegment(
+                                  value: CheckoutStrategy.adaptive,
+                                  label: Text('Adaptive'),
+                                ),
+                              ],
+                              selected: {controller.checkoutStrategy},
+                              onSelectionChanged: (selection) {
+                                controller.updateCheckoutStrategy(
+                                  selection.first,
+                                );
+                              },
+                            ),
                           ],
                         ],
                       ),
@@ -879,6 +992,17 @@ class _GroupDetailScreen extends StatelessWidget {
                         icon: const Icon(Icons.person_add, size: 18),
                         label: const Text('Add Player'),
                       ),
+                      if (controller.canManageLineup &&
+                          controller.userGroups.any(
+                            (group) =>
+                                group.sessionId != controller.liveMatchId,
+                          ))
+                        OutlinedButton.icon(
+                          onPressed: () =>
+                              _showImportStatsDialog(context, palette),
+                          icon: const Icon(Icons.download, size: 18),
+                          label: const Text('Import stats'),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -988,17 +1112,25 @@ class _ActiveGroupDetails extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: QrImageView(
-              data: activeSessionId,
-              version: QrVersions.auto,
-              size: 112,
-              backgroundColor: Colors.white,
+          SizedBox(
+            width: 128,
+            height: 128,
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: QrImageView(
+                  data: activeSessionId,
+                  version: QrVersions.auto,
+                  size: 112,
+                  backgroundColor: Colors.white,
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 14),
@@ -1042,6 +1174,91 @@ class _ActiveGroupDetails extends StatelessWidget {
       ),
     );
   }
+}
+
+class _QrJoinScannerScreen extends StatefulWidget {
+  const _QrJoinScannerScreen();
+
+  @override
+  State<_QrJoinScannerScreen> createState() => _QrJoinScannerScreenState();
+}
+
+class _QrJoinScannerScreenState extends State<_QrJoinScannerScreen> {
+  bool _handled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: const Text('Scan group QR'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            onDetect: (capture) {
+              if (_handled) {
+                return;
+              }
+              for (final barcode in capture.barcodes) {
+                final code = _groupCodeFromQrValue(barcode.rawValue);
+                if (code == null) {
+                  continue;
+                }
+                _handled = true;
+                Navigator.of(context).pop(code);
+                return;
+              }
+            },
+          ),
+          Center(
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                border: Border.all(color: palette.primary, width: 3),
+                borderRadius: BorderRadius.circular(24),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 28,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Padding(
+                padding: EdgeInsets.all(14),
+                child: Text(
+                  'Point the camera at a group QR code.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String? _groupCodeFromQrValue(String? rawValue) {
+  final value = rawValue?.trim().toUpperCase();
+  if (value == null || value.isEmpty) {
+    return null;
+  }
+  final match = RegExp(r'([A-Z]{3}[0-9]{3})').firstMatch(value);
+  return match?.group(1);
 }
 
 class _SessionTextField extends StatelessWidget {
