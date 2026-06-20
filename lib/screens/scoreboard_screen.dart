@@ -74,15 +74,19 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                         children: [
                           ListTile(
                             dense: true,
+                            visualDensity: const VisualDensity(
+                              horizontal: 0,
+                              vertical: -3,
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8,
+                              horizontal: 6,
                               vertical: 0,
                             ),
                             leading: PlayerAvatar(
                               name: player.name,
                               avatarColorValue: player.avatarColorValue,
                               photoUrl: player.photoUrl,
-                              radius: 18,
+                              radius: 15,
                             ),
                             title: Row(
                               children: [
@@ -91,7 +95,7 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                                   style: theme.textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.w900,
                                     color: palette.text,
-                                    fontSize: 14,
+                                    fontSize: 13,
                                   ),
                                 ),
                                 if (player.isWinner) ...[
@@ -112,36 +116,45 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                               style: TextStyle(
                                 color: palette.textMuted,
                                 fontWeight: FontWeight.w600,
-                                fontSize: 12,
+                                fontSize: 11,
                               ),
                             ),
-                            trailing: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  widget.controller.isDartsGame
-                                      ? '${player.remaining}'
-                                      : '${player.totalScored}',
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w900,
-                                    color: player.isWinner
-                                        ? palette.primary
-                                        : palette.text,
-                                  ),
+                            trailing: SizedBox(
+                              width: 62,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerRight,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      widget.controller.isDartsGame
+                                          ? '${player.remaining}'
+                                          : '${player.totalScored}',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 18,
+                                            color: player.isWinner
+                                                ? palette.primary
+                                                : palette.text,
+                                          ),
+                                    ),
+                                    Text(
+                                      widget.controller.settings.mode ==
+                                              GameMode.x01
+                                          ? l10n.t('scoreboard.left')
+                                          : l10n.t('scoreboard.points'),
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        color: palette.textMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  widget.controller.settings.mode ==
-                                          GameMode.x01
-                                      ? l10n.t('scoreboard.left')
-                                      : l10n.t('scoreboard.points'),
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: palette.textMuted,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
 
@@ -149,12 +162,12 @@ class _ScoreboardScreenState extends State<ScoreboardScreen> {
                             Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 10,
-                                vertical: 4,
+                                vertical: 7,
                               ),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 9,
-                                  horizontal: 10,
+                                  vertical: 12,
+                                  horizontal: 12,
                                 ),
                                 decoration: BoxDecoration(
                                   color: palette.surfaceMuted,
@@ -246,7 +259,7 @@ class _MiniStat extends StatelessWidget {
           style: TextStyle(
             color: palette.text,
             fontWeight: FontWeight.w900,
-            fontSize: 16,
+            fontSize: 18,
           ),
         ),
         Text(
@@ -257,7 +270,7 @@ class _MiniStat extends StatelessWidget {
           style: TextStyle(
             color: palette.textMuted,
             fontWeight: FontWeight.bold,
-            fontSize: 9,
+            fontSize: 10,
           ),
         ),
       ],
