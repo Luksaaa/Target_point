@@ -925,6 +925,51 @@ class _GroupDetailScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _confirmDeleteGroup(
+    BuildContext context,
+    AppPalette palette,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface,
+        title: Text(
+          _s(context, 'settings.deleteGroupTitle'),
+          style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
+        ),
+        content: Text(
+          _s(context, 'settings.deleteGroupBody'),
+          style: TextStyle(
+            color: palette.textMuted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(_s(context, 'common.cancel')),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(_s(context, 'settings.yesDeleteGroup')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) {
+      return;
+    }
+    await controller.deleteCurrentGroup();
+    if (context.mounted) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
@@ -973,6 +1018,19 @@ class _GroupDetailScreen extends StatelessWidget {
                         icon: const Icon(Icons.logout, size: 18),
                         label: Text(_s(context, 'settings.leave')),
                       ),
+                      if (controller.canManageGroupMembers)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: BorderSide(
+                              color: Colors.redAccent.withValues(alpha: 0.65),
+                            ),
+                          ),
+                          onPressed: () =>
+                              _confirmDeleteGroup(context, palette),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: Text(_s(context, 'settings.deleteGroup')),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 18),

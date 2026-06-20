@@ -421,6 +421,26 @@ class AuthRepository {
     await _db.child('userSessions/$userId/$sessionId').remove();
   }
 
+  Future<void> deleteSession({
+    required String sessionId,
+    required String ownerUserId,
+    required String sportId,
+    required String normalizedName,
+  }) async {
+    if (!_firebaseReady || ownerUserId == 'guest') {
+      return;
+    }
+
+    await _db.child('sessions/$sessionId').remove();
+
+    try {
+      await _db.child('userSessions/$ownerUserId/$sessionId').remove();
+      await _db.child('sportGroupNames/$sportId/$normalizedName').remove();
+    } catch (error) {
+      debugPrint('Session index cleanup failed: $error');
+    }
+  }
+
   Future<void> addSessionMember({
     required String sessionId,
     required UserSession user,

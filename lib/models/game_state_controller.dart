@@ -899,16 +899,73 @@ class GameStateController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteCurrentGroup() async {
+    final sessionId = _liveMatchId;
+    if (sessionId == null || !canManageGroupMembers) {
+      _liveMatchMessage = 'Only the group admin can delete the group.';
+      notifyListeners();
+      return;
+    }
+
+    final deletedSessionName = _activeSessionName;
+    try {
+      await _authRepository.deleteSession(
+        sessionId: sessionId,
+        ownerUserId: _currentUser.id,
+        sportId: gameId,
+        normalizedName: _normalizeGroupName(deletedSessionName),
+      );
+    } catch (error) {
+      _liveMatchMessage = 'Could not delete group: $error';
+      notifyListeners();
+      return;
+    }
+
+    await _clearDeletedGroup(sessionId, message: 'Group deleted.');
+  }
+
   void _subscribeToLiveMatch(String matchId) {
     _liveMatchSubscription?.cancel();
     _liveMatchSubscription = _authRepository.watchSession(matchId).listen((
       payload,
     ) {
       if (payload == null) {
+        _clearDeletedGroup(matchId, message: 'Group was deleted.');
         return;
       }
       _applyLivePayload(payload);
     });
+  }
+
+  Future<void> _clearDeletedGroup(
+    String sessionId, {
+    required String message,
+  }) async {
+    await _liveMatchSubscription?.cancel();
+    _liveMatchSubscription = null;
+    _userGroups.removeWhere((group) => group.sessionId == sessionId);
+    if (_liveMatchId == sessionId) {
+      _liveMatchId = null;
+      _activeGroupCode = null;
+      _activeSessionName = 'Personal session';
+      _isLiveHost = false;
+      _liveHostUserId = null;
+      _deviceMode = GroupDeviceMode.ownDevice;
+      _groupMembers.clear();
+      _currentTurn.clear();
+      _startFreshGroupForCurrentUser();
+    }
+    if (!_currentUser.isGuest) {
+      try {
+        await _authRepository.removeUserSession(
+          userId: _currentUser.id,
+          sessionId: sessionId,
+        );
+      } catch (_) {}
+      await _refreshUserGroups();
+    }
+    _liveMatchMessage = message;
+    notifyListeners();
   }
 
   Future<bool> _syncLiveMatch() {

@@ -165,6 +165,11 @@ const _safeStrings = {
     'account.followingCount': 'following',
     'account.lightThemeHint': 'Light app appearance',
     'account.darkThemeHint': 'Dark app appearance',
+    'settings.deleteGroup': 'Delete group',
+    'settings.deleteGroupTitle': 'Delete group?',
+    'settings.deleteGroupBody':
+        'This group will be deleted for all members. This cannot be undone.',
+    'settings.yesDeleteGroup': 'Yes, delete',
     'play.dartLabel': 'Dart {number}',
     'play.dartInputHint': 'D6 or 12',
   },
@@ -174,6 +179,11 @@ const _safeStrings = {
     'account.followingCount': 'praćenih',
     'account.lightThemeHint': 'Svijetli prikaz aplikacije',
     'account.darkThemeHint': 'Tamni prikaz aplikacije',
+    'settings.deleteGroup': 'Izbriši grupu',
+    'settings.deleteGroupTitle': 'Izbrisati grupu?',
+    'settings.deleteGroupBody':
+        'Ova grupa će se izbrisati svim članovima. Ova radnja se ne može poništiti.',
+    'settings.yesDeleteGroup': 'Da, izbriši',
     'hub.note':
         'Pikado je trenutno spreman. Preseti i korisni\u010dke aktivnosti pripremljeni su kao moduli za kasnija pravila bodovanja.',
     'action.undo': 'Poni\u0161ti',
