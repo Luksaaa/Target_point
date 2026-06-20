@@ -105,8 +105,8 @@ class _AccountScreenState extends State<AccountScreen> {
             ),
           ),
           body: ResponsiveContent(
-            maxWidth: 720,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+            maxWidth: 620,
+            padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -116,44 +116,43 @@ class _AccountScreenState extends State<AccountScreen> {
                   palette: palette,
                 ),
                 const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _SectionChip(
-                        label: _a(context, 'account.profile'),
-                        icon: Icons.person_outline,
-                        selected: _selectedSection == 0,
-                        onTap: () => setState(() => _selectedSection = 0),
-                      ),
-                      _SectionChip(
-                        label: _a(context, 'account.login'),
-                        icon: Icons.login,
-                        selected: _selectedSection == 1,
-                        onTap: () => setState(() => _selectedSection = 1),
-                      ),
-                      _SectionChip(
-                        label: _a(context, 'account.settings'),
-                        icon: Icons.tune,
-                        selected: _selectedSection == 2,
-                        onTap: () => setState(() => _selectedSection = 2),
-                      ),
-                      _SectionChip(
-                        label: _a(context, 'account.social'),
-                        icon: Icons.group_outlined,
-                        selected: _selectedSection == 3,
-                        onTap: () => setState(() => _selectedSection = 3),
-                      ),
-                      _SectionChip(
-                        label: _a(context, 'common.about'),
-                        icon: Icons.info_outline,
-                        selected: _selectedSection == 4,
-                        onTap: () => setState(() => _selectedSection = 4),
-                      ),
-                    ],
-                  ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _SectionChip(
+                      label: _a(context, 'account.profile'),
+                      icon: Icons.person_outline,
+                      selected: _selectedSection == 0,
+                      onTap: () => setState(() => _selectedSection = 0),
+                    ),
+                    _SectionChip(
+                      label: _a(context, 'account.login'),
+                      icon: Icons.login,
+                      selected: _selectedSection == 1,
+                      onTap: () => setState(() => _selectedSection = 1),
+                    ),
+                    _SectionChip(
+                      label: _a(context, 'account.settings'),
+                      icon: Icons.tune,
+                      selected: _selectedSection == 2,
+                      onTap: () => setState(() => _selectedSection = 2),
+                    ),
+                    _SectionChip(
+                      label: _a(context, 'account.social'),
+                      icon: Icons.group_outlined,
+                      selected: _selectedSection == 3,
+                      onTap: () => setState(() => _selectedSection = 3),
+                    ),
+                    _SectionChip(
+                      label: _a(context, 'common.about'),
+                      icon: Icons.info_outline,
+                      selected: _selectedSection == 4,
+                      onTap: () => setState(() => _selectedSection = 4),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 160),
@@ -188,7 +187,14 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PanelTitle(
+            icon: Icons.person_outline,
+            title: _a(context, 'account.profile'),
+            palette: palette,
+          ),
+          const SizedBox(height: 18),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
                 onTap: _showPhotoDialog,
@@ -198,7 +204,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     _ProfileAvatar(
                       user: user,
                       selectedColor: _selectedColor,
-                      radius: 34,
+                      radius: 38,
                     ),
                     Container(
                       width: 24,
@@ -217,7 +223,7 @@ class _AccountScreenState extends State<AccountScreen> {
                   ],
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 16),
               Expanded(
                 child: TextField(
                   controller: _nameController,
@@ -228,12 +234,28 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: palette.primary),
-            onPressed: _saveProfile,
-            icon: const Icon(Icons.save),
-            label: Text(_a(context, 'profile.save')),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _showPhotoDialog,
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  label: Text(_a(context, 'profile.photo')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: palette.primary,
+                  ),
+                  onPressed: _saveProfile,
+                  icon: const Icon(Icons.save, size: 18),
+                  label: Text(_a(context, 'profile.save')),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -247,34 +269,26 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PanelTitle(
+            icon: user.isGuest ? Icons.person_outline : Icons.verified_user,
+            title: user.isGuest
+                ? _a(context, 'account.guestMode')
+                : _a(context, 'account.signedIn'),
+            palette: palette,
+          ),
+          const SizedBox(height: 12),
           Row(
             children: [
-              Icon(
-                user.isGuest ? Icons.person_outline : Icons.verified_user,
-                color: palette.primary,
-              ),
-              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  user.isGuest
-                      ? _a(context, 'account.guestMode')
-                      : _a(context, 'account.signedIn'),
+                  user.email ?? user.displayName,
                   style: TextStyle(
-                    color: palette.text,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                    color: palette.textMuted,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            user.email ?? user.displayName,
-            style: TextStyle(
-              color: palette.textMuted,
-              fontWeight: FontWeight.w700,
-            ),
           ),
           const SizedBox(height: 14),
           if (user.isGuest)
@@ -342,6 +356,12 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PanelTitle(
+            icon: Icons.tune,
+            title: _a(context, 'account.settings'),
+            palette: palette,
+          ),
+          const SizedBox(height: 18),
           Text(
             _a(context, 'common.theme'),
             style: TextStyle(color: palette.text, fontWeight: FontWeight.w800),
@@ -400,6 +420,12 @@ class _AccountScreenState extends State<AccountScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _PanelTitle(
+            icon: Icons.group_outlined,
+            title: _a(context, 'account.social'),
+            palette: palette,
+          ),
+          const SizedBox(height: 14),
           Row(
             children: [
               Expanded(
@@ -459,17 +485,29 @@ class _AccountScreenState extends State<AccountScreen> {
   Widget _buildAboutSection(AppPalette palette) {
     return _Panel(
       palette: palette,
-      child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: Icon(Icons.info_outline, color: palette.primary),
-        title: Text(
-          'Game hub',
-          style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
-        ),
-        subtitle: Text(
-          '${_a(context, 'common.version')} 1.0.1',
-          style: TextStyle(color: palette.textMuted),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _PanelTitle(
+            icon: Icons.info_outline,
+            title: _a(context, 'common.about'),
+            palette: palette,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Game hub',
+            style: TextStyle(
+              color: palette.text,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${_a(context, 'common.version')} 1.0.1',
+            style: TextStyle(color: palette.textMuted),
+          ),
+        ],
       ),
     );
   }
@@ -558,12 +596,15 @@ class _AccountSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final statusText = user.isGuest
+        ? _a(context, 'account.guestMode')
+        : _a(context, 'account.signedIn');
     return _Panel(
       palette: palette,
       child: Row(
         children: [
-          _ProfileAvatar(user: user, selectedColor: selectedColor, radius: 24),
-          const SizedBox(width: 12),
+          _ProfileAvatar(user: user, selectedColor: selectedColor, radius: 30),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,7 +619,7 @@ class _AccountSummary extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  user.isGuest ? 'Guest mode' : user.email ?? 'Signed in',
+                  user.isGuest ? statusText : user.email ?? statusText,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: palette.textMuted,
@@ -586,6 +627,22 @@ class _AccountSummary extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: palette.primarySoft,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              statusText,
+              style: TextStyle(
+                color: palette.primary,
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -657,23 +714,68 @@ class _SectionChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = AppPalette.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        avatar: Icon(
-          icon,
-          size: 16,
-          color: selected ? palette.primary : palette.textMuted,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 140),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? palette.primarySoft : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? palette.primary : palette.border,
+          ),
         ),
-        label: Text(label),
-        selected: selected,
-        selectedColor: palette.primarySoft,
-        labelStyle: TextStyle(
-          color: selected ? palette.primary : palette.text,
-          fontWeight: FontWeight.w900,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 17,
+              color: selected ? palette.primary : palette.textMuted,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? palette.primary : palette.text,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
-        onSelected: (_) => onTap(),
       ),
+    );
+  }
+}
+
+class _PanelTitle extends StatelessWidget {
+  const _PanelTitle({
+    required this.icon,
+    required this.title,
+    required this.palette,
+  });
+
+  final IconData icon;
+  final String title;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: palette.primary, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: TextStyle(
+            color: palette.text,
+            fontWeight: FontWeight.w900,
+            fontSize: 17,
+          ),
+        ),
+      ],
     );
   }
 }
