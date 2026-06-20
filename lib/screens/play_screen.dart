@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/dart_hit.dart';
 import '../models/game_settings.dart';
 import '../models/game_state_controller.dart';
 import '../models/player_score.dart';
@@ -286,14 +287,14 @@ class _CurrentTurnHeader extends StatelessWidget {
         content: TextField(
           controller: inputController,
           autofocus: true,
-          keyboardType: TextInputType.number,
+          keyboardType: TextInputType.text,
           textInputAction: TextInputAction.done,
           style: theme.textTheme.titleLarge?.copyWith(
             color: palette.text,
             fontWeight: FontWeight.w900,
           ),
           decoration: InputDecoration(
-            hintText: '0 - 60',
+            hintText: _p(context, 'play.dartInputHint'),
             filled: true,
             fillColor: palette.surfaceMuted,
           ),
@@ -318,12 +319,61 @@ class _CurrentTurnHeader extends StatelessWidget {
     int index,
     TextEditingController inputController,
   ) {
-    final score = int.tryParse(inputController.text.trim());
-    if (score == null) {
+    final hit = _parseManualDartHit(inputController.text);
+    if (hit == null) {
       return;
     }
-    controller.setManualDartScore(index, score);
+    controller.setManualDartHit(index, hit);
     Navigator.of(context).pop();
+  }
+
+  DartHit? _parseManualDartHit(String rawValue) {
+    final value = rawValue.trim().toUpperCase().replaceAll(' ', '');
+    if (value.isEmpty) {
+      return null;
+    }
+
+    final directScore = int.tryParse(value);
+    if (directScore != null) {
+      final score = directScore.clamp(0, 60);
+      return DartHit(
+        label: score == 0 ? 'M' : '$score',
+        score: score,
+        band: score == 0 ? SegmentBand.miss : SegmentBand.single,
+      );
+    }
+
+    if (value == 'B' || value == 'BULL') {
+      return const DartHit(label: 'BULL', score: 50, band: SegmentBand.bull);
+    }
+
+    final match = RegExp(r'^([SDT])(\d{1,2})$').firstMatch(value);
+    if (match == null) {
+      return null;
+    }
+
+    final prefix = match.group(1)!;
+    final number = int.tryParse(match.group(2)!);
+    if (number == null || number < 1 || number > 20) {
+      return null;
+    }
+
+    final multiplier = switch (prefix) {
+      'D' => 2,
+      'T' => 3,
+      _ => 1,
+    };
+    final band = switch (prefix) {
+      'D' => SegmentBand.double,
+      'T' => SegmentBand.triple,
+      _ => SegmentBand.single,
+    };
+    return DartHit(
+      label: '$prefix$number',
+      score: number * multiplier,
+      band: band,
+      number: number,
+    );
   }
 
   @override
@@ -341,7 +391,7 @@ class _CurrentTurnHeader extends StatelessWidget {
     final checkoutTargets = _checkoutTargets(checkoutHint);
     final canScore = controller.canScoreCurrentTurn;
     final statusMessage = !canScore && !controller.matchFinished
-        ? 'Waiting for ${player.name}'
+        ? _p(context, 'play.waitingFor').replaceAll('{name}', player.name)
         : controller.matchMessage;
     final showCheckoutHint =
         checkoutHint != null && canScore && statusMessage == null;
@@ -429,7 +479,12 @@ class _CurrentTurnHeader extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        hit?.label ?? checkoutTarget ?? 'Dart ${index + 1}',
+                        hit?.label ??
+                            checkoutTarget ??
+                            _p(
+                              context,
+                              'play.dartLabel',
+                            ).replaceAll('{number}', '${index + 1}'),
                         style: TextStyle(
                           color: hit != null || checkoutTarget != null
                               ? palette.primary
@@ -450,7 +505,9 @@ class _CurrentTurnHeader extends StatelessWidget {
               alignment: Alignment.center,
               children: [
                 Align(
-                  alignment: Alignment.centerLeft,
+                  alignment: isDarts && !showCheckoutHint
+                      ? Alignment.center
+                      : Alignment.centerLeft,
                   child: Text(
                     isDarts
                         ? '${_p(context, 'play.turnTotal')}: $turnTotal'

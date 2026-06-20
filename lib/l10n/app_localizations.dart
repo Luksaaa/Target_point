@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -28,8 +30,8 @@ class AppLocalizations {
       null => 'System',
       'hr' => 'Hrvatski',
       'de' => 'Deutsch',
-      'es' => 'Espa?ol',
-      'fr' => 'Fran?ais',
+      'es' => 'Espa\u00f1ol',
+      'fr' => 'Fran\u00e7ais',
       'it' => 'Italiano',
       'ja' => '\u65E5\u672C\u8A9E',
       'zh' => '\u4E2D\u6587',
@@ -44,39 +46,77 @@ class AppLocalizations {
           _gameNameOverrides[locale.languageCode]?[gameKey] ??
           _gameNameOverrides['en']?[gameKey];
       if (gameOverride != null) {
-        return gameOverride;
+        return _cleanLocalizedText(gameOverride);
       }
+    }
+    final safeOverride = _safeStrings[locale.languageCode]?[key];
+    if (safeOverride != null) {
+      return _cleanLocalizedText(safeOverride);
     }
     final override = _extraStrings[locale.languageCode]?[key];
     if (override != null) {
-      return override;
+      return _cleanLocalizedText(override);
     }
     final englishOverride = _extraStrings['en']?[key];
     final language = _strings[locale.languageCode] ?? _strings['en']!;
-    return language[key] ?? englishOverride ?? _strings['en']![key] ?? key;
+    return _cleanLocalizedText(
+      language[key] ?? englishOverride ?? _strings['en']![key] ?? key,
+    );
   }
 
-  String gameName(String key, String fallback) =>
-      _gameNameOverrides[locale.languageCode]?[key] ??
-      _gameNameOverrides['en']?[key] ??
-      (t('game.$key.name') == 'game.$key.name'
-          ? fallback
-          : t('game.$key.name'));
+  String gameName(String key, String fallback) => _cleanLocalizedText(
+    _gameNameOverrides[locale.languageCode]?[key] ??
+        _gameNameOverrides['en']?[key] ??
+        (t('game.$key.name') == 'game.$key.name'
+            ? fallback
+            : t('game.$key.name')),
+  );
 
-  String gameSubtitle(String key, String fallback) =>
-      t('game.$key.subtitle') == 'game.$key.subtitle'
-      ? fallback
-      : t('game.$key.subtitle');
+  String gameSubtitle(String key, String fallback) => _cleanLocalizedText(
+    t('game.$key.subtitle') == 'game.$key.subtitle'
+        ? fallback
+        : t('game.$key.subtitle'),
+  );
 
   String sportAction(String id, String fallback) {
     final language = _sportActions[locale.languageCode] ?? _sportActions['en']!;
-    return language[id] ?? _sportActions['en']![id] ?? fallback;
+    return _cleanLocalizedText(
+      language[id] ?? _sportActions['en']![id] ?? fallback,
+    );
   }
 
   String sportStat(String key, String fallback) {
     final language = _sportStats[locale.languageCode] ?? _sportStats['en']!;
-    return language[key] ?? _sportStats['en']![key] ?? fallback;
+    return _cleanLocalizedText(
+      language[key] ?? _sportStats['en']![key] ?? fallback,
+    );
   }
+}
+
+String _cleanLocalizedText(String value) {
+  if (!value.contains('Ã') &&
+      !value.contains('Â') &&
+      !value.contains('ã') &&
+      !value.contains('è') &&
+      !value.contains('å')) {
+    return value;
+  }
+
+  var current = value;
+  for (var i = 0; i < 3; i++) {
+    try {
+      final decoded = utf8.decode(latin1.encode(current));
+      if (decoded == current) {
+        break;
+      }
+      current = decoded;
+    } on FormatException {
+      break;
+    } on ArgumentError {
+      break;
+    }
+  }
+  return current;
 }
 
 class _AppLocalizationsDelegate
@@ -102,6 +142,147 @@ class _AppLocalizationsDelegate
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
+
+const _safeStrings = {
+  'en': {'play.dartLabel': 'Dart {number}', 'play.dartInputHint': 'D6 or 12'},
+  'hr': {
+    'hub.note':
+        'Pikado je trenutno spreman. Preseti i korisni\u010dke aktivnosti pripremljeni su kao moduli za kasnija pravila bodovanja.',
+    'action.undo': 'Poni\u0161ti',
+    'action.miss': 'Proma\u0161aj',
+    'action.newMatch': 'Novi me\u010d',
+    'action.accountSettings': 'Ra\u010dun i postavke',
+    'match.newTitle': 'Novi me\u010d?',
+    'match.newDescription':
+        'Ovo \u0107e resetirati trenutni rezultat igre. Jeste li sigurni?',
+    'scoreboard.noPlayers': 'Nema aktivnih igra\u010da.',
+    'scoreboard.localPlayer': 'Lokalni igra\u010d',
+    'settings.playersLineup': 'Igra\u010di',
+    'history.title': 'Povijest me\u010deva',
+    'history.emptyTitle': 'Jo\u0161 nema odigranih me\u010deva',
+    'history.emptyDescription':
+        'Odigraj me\u010d za prikaz povijesti i statistike!',
+    'history.currentThrows': 'Bacanja trenutnog me\u010da',
+    'history.finalScores': 'Zavr\u0161ni rezultati',
+    'history.showThrowHistory': 'Prika\u017ei povijest bacanja',
+    'history.hideThrowHistory': 'Sakrij povijest bacanja',
+    'account.title': 'Ra\u010dun',
+    'account.social': 'Dru\u0161tveno',
+    'account.guestMode': 'Gost na\u010din',
+    'account.switchGoogle': 'Promijeni Google ra\u010dun',
+    'account.followUser': 'Zaprati korisnika (handle ili ime)',
+    'account.noFollowed': 'Jo\u0161 ne prati\u0161 korisnike.',
+    'activity.rulesHint': 'Prvi koji zavr\u0161i pobje\u0111uje',
+    'activity.customSubtitle':
+        'Korisni\u010dko natjecanje s vlastitim pravilima',
+    'activity.plannedModes': 'Planirani na\u010dini',
+    'profile.name': 'Ime profila',
+    'profile.save': 'Spremi profil',
+    'profile.photo': 'Profilna slika',
+    'profile.chooseGallery': 'Odaberi iz galerije',
+    'profile.takePhoto': 'Fotografiraj',
+    'common.add': 'Dodaj',
+    'common.remove': 'Ukloni',
+    'common.copy': 'Kopiraj',
+    'common.import': 'Uvezi',
+    'common.about': 'O aplikaciji',
+    'common.version': 'Verzija',
+    'common.close': 'Zatvori',
+    'common.search': 'Pretraga',
+    'common.newest': 'Najnovije',
+    'common.popular': 'Popularno',
+    'common.az': 'A-Z',
+    'common.wins': 'Pobjede',
+    'settings.addNewPlayer': 'Dodaj novog igra\u010da',
+    'settings.playerName': 'Ime igra\u010da',
+    'settings.avatarColor': 'Odaberi boju avatara',
+    'settings.addPlayer': 'Dodaj igra\u010da',
+    'settings.restartMatchTitle': 'Resetirati me\u010d?',
+    'settings.restartMatchBody':
+        'Promjena postavki me\u010da resetirat \u0107e trenutno stanje igre i bodove. \u017deli\u0161 nastaviti?',
+    'settings.yesReset': 'Da, resetiraj',
+    'settings.removePlayerTitle': 'Ukloniti igra\u010da?',
+    'settings.removePlayerBody': 'Ukloniti {name} iz ove grupe?',
+    'settings.matchSetup': 'Postavke me\u010da',
+    'settings.groups': 'Grupe',
+    'settings.guestLocal':
+        'Gost na\u010din je samo lokalno. Prijavi se za sinkronizaciju bodova.',
+    'settings.searchGroups': 'Pretra\u017ei grupe',
+    'settings.groupName': 'Ime grupe',
+    'settings.groupCode': 'Kod grupe',
+    'settings.createGroup': 'Napravi grupu',
+    'settings.joinGroup': 'Pridru\u017ei se grupi',
+    'settings.scanQr': 'Skeniraj QR',
+    'settings.noGroups':
+        'Jo\u0161 nema grupa. Napravi ili se pridru\u017ei grupi.',
+    'settings.noGroupMatches': 'Nema grupa za ovu pretragu.',
+    'settings.importStats': 'Uvezi statistiku',
+    'settings.importCompleted': 'Import je zavr\u0161en',
+    'settings.importAdd': 'Dodaj na trenutnu statistiku',
+    'settings.importAddDescription':
+        'Zadr\u017eava trenutnu statistiku i dodaje vrijednosti iz grupe.',
+    'settings.importUseSource': 'Koristi statistiku iz grupe',
+    'settings.importUseSourceDescription':
+        'Zamjenjuje statistiku istih igra\u010da vrijednostima iz odabrane grupe.',
+    'settings.selectGroupFirst': 'Prvo odaberi grupu.',
+    'settings.leave': 'Iza\u0111i',
+    'settings.gameMode': 'Na\u010din igre',
+    'settings.countUp': 'Zbrajanje',
+    'settings.startingScore': 'Po\u010detni score',
+    'settings.finishRule': 'Pravilo izlaza',
+    'settings.checkoutAdvice': 'Savjet za izlaz',
+    'settings.professional': 'Profesionalno',
+    'settings.adaptive': 'Prilago\u0111eno',
+    'settings.deviceMode': 'Na\u010din ure\u0111aja',
+    'settings.deviceModeDescription':
+        'Odaberi tko mo\u017ee upisivati bacanja i bodove za ovu grupu.',
+    'settings.groupAdmin': 'Admin grupe',
+    'settings.member': '\u010clan',
+    'settings.nowThrowing': 'Sada baca',
+    'settings.copyCode': 'Kopiraj kod',
+    'settings.codeCopied': 'Kod grupe je kopiran',
+    'settings.scanGroupQr': 'Skeniraj QR grupe',
+    'settings.scanHint': 'Usmjeri kameru prema QR kodu grupe.',
+    'device.ownDevice': 'Vlastiti ure\u0111aj',
+    'device.ownDeviceDescription':
+        'Svaki prijavljeni igra\u010d upisuje samo svoj red.',
+    'device.sharedDevices': 'Dijeljeni ure\u0111aji',
+    'device.sharedDevicesDescription':
+        'Bilo koji \u010dlan grupe mo\u017ee upisati red trenutnog igra\u010da.',
+    'device.adminDevice': 'Admin ure\u0111aj',
+    'device.adminDeviceDescription':
+        'Samo admin grupe upisuje bacanja i bodove za sve.',
+    'play.dartScoreTitle': 'Bodovi strelice {number}',
+    'play.dartLabel': 'Strelica {number}',
+    'play.dartInputHint': 'D6 ili 12',
+    'play.liveLeaderboard': 'Live ljestvica',
+    'play.turnTotal': 'Ukupno',
+    'play.waitingFor': '\u010ceka se {name}',
+    'play.notYourTurn': 'Nisi na redu. \u010ceka se {name}.',
+    'play.out': 'Izlaz',
+    'play.bust': '{name} je bust. Score ostaje {score}.',
+    'search.hint': 'Pretra\u017ei igra\u010de ili me\u010deve...',
+    'search.empty': 'Nema rezultata.',
+  },
+  'de': {'play.dartLabel': 'Wurf {number}', 'play.dartInputHint': 'D6 oder 12'},
+  'es': {'play.dartLabel': 'Dardo {number}', 'play.dartInputHint': 'D6 o 12'},
+  'fr': {
+    'play.dartLabel': 'Fl\u00e9chette {number}',
+    'play.dartInputHint': 'D6 ou 12',
+  },
+  'it': {
+    'play.dartLabel': 'Freccetta {number}',
+    'play.dartInputHint': 'D6 o 12',
+  },
+  'ja': {
+    'play.dartLabel': '\u30c0\u30fc\u30c4 {number}',
+    'play.dartInputHint': 'D6 \u307e\u305f\u306f 12',
+  },
+  'zh': {
+    'play.dartLabel': '\u98de\u9556 {number}',
+    'play.dartInputHint': 'D6 \u6216 12',
+  },
+};
 
 const _strings = {
   'en': {

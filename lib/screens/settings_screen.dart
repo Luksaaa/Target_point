@@ -1,4 +1,4 @@
-﻿import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -1483,22 +1483,19 @@ class _DeviceModeTile extends StatelessWidget {
   final AppPalette palette;
   final VoidCallback onTap;
 
-  String get _title {
+  String get _titleKey {
     return switch (mode) {
-      GroupDeviceMode.ownDevice => 'Own device',
-      GroupDeviceMode.sharedDevices => 'Shared devices',
-      GroupDeviceMode.adminDevice => 'Admin device',
+      GroupDeviceMode.ownDevice => 'device.ownDevice',
+      GroupDeviceMode.sharedDevices => 'device.sharedDevices',
+      GroupDeviceMode.adminDevice => 'device.adminDevice',
     };
   }
 
-  String get _description {
+  String get _descriptionKey {
     return switch (mode) {
-      GroupDeviceMode.ownDevice =>
-        'Each signed-in player enters only their own turn.',
-      GroupDeviceMode.sharedDevices =>
-        'Any group member can enter the current player turn.',
-      GroupDeviceMode.adminDevice =>
-        'Only the group admin enters throws and scores for everyone.',
+      GroupDeviceMode.ownDevice => 'device.ownDeviceDescription',
+      GroupDeviceMode.sharedDevices => 'device.sharedDevicesDescription',
+      GroupDeviceMode.adminDevice => 'device.adminDeviceDescription',
     };
   }
 
@@ -1522,7 +1519,7 @@ class _DeviceModeTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _title,
+                    _s(context, _titleKey),
                     style: TextStyle(
                       color: enabled ? palette.text : palette.textMuted,
                       fontWeight: FontWeight.w900,
@@ -1530,7 +1527,7 @@ class _DeviceModeTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    _description,
+                    _s(context, _descriptionKey),
                     style: TextStyle(
                       color: palette.textMuted,
                       fontWeight: FontWeight.w600,

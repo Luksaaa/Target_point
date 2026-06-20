@@ -1351,6 +1351,11 @@ class GameStateController extends ChangeNotifier {
   }
 
   void setManualDartScore(int index, int score) {
+    final normalizedScore = score.clamp(0, 60).toInt();
+    setManualDartHit(index, _manualDartHit(normalizedScore));
+  }
+
+  void setManualDartHit(int index, DartHit hit) {
     if (!canScoreCurrentTurn || index < 0 || index > 2) {
       if (!canScoreCurrentTurn && isLiveMatchActive) {
         _matchMessage = 'Waiting for ${currentPlayer.name}.';
@@ -1359,12 +1364,10 @@ class GameStateController extends ChangeNotifier {
       return;
     }
 
-    final normalizedScore = score.clamp(0, 60);
     while (_currentTurn.length < index) {
       _currentTurn.add(_manualDartHit(0));
     }
 
-    final hit = _manualDartHit(normalizedScore);
     if (index < _currentTurn.length) {
       _currentTurn[index] = hit;
     } else if (_currentTurn.length < 3) {
