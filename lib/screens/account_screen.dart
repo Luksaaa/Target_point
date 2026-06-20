@@ -38,6 +38,9 @@ class _AccountScreenState extends State<AccountScreen> {
   final _imagePicker = ImagePicker();
   int _selectedColor = 0xFF0F8B6B;
   String? _lastSyncedUserId;
+  List<FollowedUser> _followResults = const [];
+  bool _isSearchingUsers = false;
+  int _followSearchSerial = 0;
 
   @override
   void initState() {
@@ -67,8 +70,52 @@ class _AccountScreenState extends State<AccountScreen> {
   }
 
   void _followUser() {
+    if (_followResults.isNotEmpty) {
+      _followSelectedUser(_followResults.first);
+      return;
+    }
     widget.controller.followUser(_followController.text);
     _followController.clear();
+    setState(() {
+      _followResults = const [];
+      _isSearchingUsers = false;
+    });
+  }
+
+  Future<void> _searchFollowableUsers(String value) async {
+    _followSearchSerial += 1;
+    final serial = _followSearchSerial;
+    if (value.trim().length < 2) {
+      setState(() {
+        _followResults = const [];
+        _isSearchingUsers = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingUsers = true;
+    });
+    final results = await widget.controller.searchFollowableUsers(value);
+    if (!mounted || serial != _followSearchSerial) {
+      return;
+    }
+    setState(() {
+      _followResults = results;
+      _isSearchingUsers = false;
+    });
+  }
+
+  Future<void> _followSelectedUser(FollowedUser user) async {
+    await widget.controller.followExistingUser(user);
+    _followController.clear();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _followResults = const [];
+      _isSearchingUsers = false;
+    });
   }
 
   @override
@@ -500,6 +547,7 @@ class _AccountScreenState extends State<AccountScreen> {
                     labelText: _a(context, 'account.followUser'),
                     isDense: true,
                   ),
+                  onChanged: _searchFollowableUsers,
                   onSubmitted: (_) => _followUser(),
                 ),
               ),
@@ -512,6 +560,61 @@ class _AccountScreenState extends State<AccountScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          if (_isSearchingUsers)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: CircularProgressIndicator(color: palette.primary),
+              ),
+            )
+          else if (_followController.text.trim().length >= 2 &&
+              _followResults.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                _a(context, 'account.noUserResults'),
+                style: TextStyle(
+                  color: palette.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          else if (_followResults.isNotEmpty) ...[
+            Text(
+              _a(context, 'account.searchResults'),
+              style: TextStyle(
+                color: palette.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ..._followResults.map(
+              (fUser) => ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(
+                  backgroundColor: palette.primarySoft,
+                  foregroundColor: palette.primary,
+                  child: Text(fUser.displayName.substring(0, 1).toUpperCase()),
+                ),
+                title: Text(
+                  fUser.displayName,
+                  style: TextStyle(
+                    color: palette.text,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                subtitle: Text(
+                  fUser.email ?? fUser.handle,
+                  style: TextStyle(color: palette.textMuted),
+                ),
+                trailing: Icon(Icons.person_add_alt_1, color: palette.primary),
+                onTap: () => _followSelectedUser(fUser),
+              ),
+            ),
+            Divider(color: palette.border),
+            const SizedBox(height: 8),
+          ],
           if (widget.controller.following.isEmpty)
             Text(
               _a(context, 'account.noFollowed'),

@@ -396,7 +396,6 @@ class _SportMatchScreenState extends State<SportMatchScreen> {
           customActivities: widget.customActivities,
           onCreateActivity: widget.onCreateActivity,
           onDeleteActivity: widget.onDeleteActivity,
-          controller: _controller,
           onThemeModeChanged: widget.onThemeModeChanged,
           onLocaleChanged: widget.onLocaleChanged,
           onOpenSport: (game) {
