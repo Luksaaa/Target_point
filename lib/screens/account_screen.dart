@@ -34,13 +34,9 @@ class AccountScreen extends StatefulWidget {
 
 class _AccountScreenState extends State<AccountScreen> {
   final _nameController = TextEditingController();
-  final _followController = TextEditingController();
   final _imagePicker = ImagePicker();
   int _selectedColor = 0xFF0F8B6B;
   String? _lastSyncedUserId;
-  List<FollowedUser> _followResults = const [];
-  bool _isSearchingUsers = false;
-  int _followSearchSerial = 0;
 
   @override
   void initState() {
@@ -51,7 +47,6 @@ class _AccountScreenState extends State<AccountScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _followController.dispose();
     super.dispose();
   }
 
@@ -67,55 +62,6 @@ class _AccountScreenState extends State<AccountScreen> {
       _selectedColor,
       photoUrl: widget.controller.currentUser.photoUrl,
     );
-  }
-
-  void _followUser() {
-    if (_followResults.isNotEmpty) {
-      _followSelectedUser(_followResults.first);
-      return;
-    }
-    widget.controller.followUser(_followController.text);
-    _followController.clear();
-    setState(() {
-      _followResults = const [];
-      _isSearchingUsers = false;
-    });
-  }
-
-  Future<void> _searchFollowableUsers(String value) async {
-    _followSearchSerial += 1;
-    final serial = _followSearchSerial;
-    if (value.trim().length < 2) {
-      setState(() {
-        _followResults = const [];
-        _isSearchingUsers = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearchingUsers = true;
-    });
-    final results = await widget.controller.searchFollowableUsers(value);
-    if (!mounted || serial != _followSearchSerial) {
-      return;
-    }
-    setState(() {
-      _followResults = results;
-      _isSearchingUsers = false;
-    });
-  }
-
-  Future<void> _followSelectedUser(FollowedUser user) async {
-    await widget.controller.followExistingUser(user);
-    _followController.clear();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _followResults = const [];
-      _isSearchingUsers = false;
-    });
   }
 
   @override
@@ -195,10 +141,7 @@ class _AccountScreenState extends State<AccountScreen> {
                       subtitle:
                           '${widget.controller.following.length} ${_a(context, 'account.followingCount')}',
                       palette: palette,
-                      onTap: () => _showSectionSheet(
-                        title: _a(context, 'account.social'),
-                        child: _buildSocialSection(palette),
-                      ),
+                      onTap: _openSocialScreen,
                     ),
                   ],
                 ),
@@ -248,6 +191,14 @@ class _AccountScreenState extends State<AccountScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _openSocialScreen() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SocialScreen(controller: widget.controller),
+      ),
     );
   }
 
@@ -526,130 +477,6 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  Widget _buildSocialSection(AppPalette palette) {
-    return _Panel(
-      palette: palette,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _PanelTitle(
-            icon: Icons.group_outlined,
-            title: _a(context, 'account.social'),
-            palette: palette,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _followController,
-                  decoration: InputDecoration(
-                    labelText: _a(context, 'account.followUser'),
-                    isDense: true,
-                  ),
-                  onChanged: _searchFollowableUsers,
-                  onSubmitted: (_) => _followUser(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              IconButton.filled(
-                style: IconButton.styleFrom(backgroundColor: palette.primary),
-                onPressed: _followUser,
-                icon: const Icon(Icons.person_add_alt_1),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (_isSearchingUsers)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Center(
-                child: CircularProgressIndicator(color: palette.primary),
-              ),
-            )
-          else if (_followController.text.trim().length >= 2 &&
-              _followResults.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                _a(context, 'account.noUserResults'),
-                style: TextStyle(
-                  color: palette.textMuted,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            )
-          else if (_followResults.isNotEmpty) ...[
-            Text(
-              _a(context, 'account.searchResults'),
-              style: TextStyle(
-                color: palette.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 6),
-            ..._followResults.map(
-              (fUser) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: palette.primarySoft,
-                  foregroundColor: palette.primary,
-                  child: Text(fUser.displayName.substring(0, 1).toUpperCase()),
-                ),
-                title: Text(
-                  fUser.displayName,
-                  style: TextStyle(
-                    color: palette.text,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                subtitle: Text(
-                  fUser.email ?? fUser.handle,
-                  style: TextStyle(color: palette.textMuted),
-                ),
-                trailing: Icon(Icons.person_add_alt_1, color: palette.primary),
-                onTap: () => _followSelectedUser(fUser),
-              ),
-            ),
-            Divider(color: palette.border),
-            const SizedBox(height: 8),
-          ],
-          if (widget.controller.following.isEmpty)
-            Text(
-              _a(context, 'account.noFollowed'),
-              style: TextStyle(
-                color: palette.textMuted,
-                fontWeight: FontWeight.w700,
-              ),
-            )
-          else
-            ...widget.controller.following.map(
-              (fUser) => ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: palette.primarySoft,
-                  foregroundColor: palette.primary,
-                  child: Text(fUser.displayName.substring(0, 1).toUpperCase()),
-                ),
-                title: Text(
-                  fUser.displayName,
-                  style: TextStyle(
-                    color: palette.text,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                subtitle: Text(
-                  fUser.handle,
-                  style: TextStyle(color: palette.textMuted),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildAboutSection(AppPalette palette) {
     return _Panel(
       palette: palette,
@@ -747,6 +574,251 @@ class _AccountScreenState extends State<AccountScreen> {
       _nameController.text,
       _selectedColor,
       photoUrl: photoUrl,
+    );
+  }
+}
+
+class _SocialScreen extends StatefulWidget {
+  const _SocialScreen({required this.controller});
+
+  final GameStateController controller;
+
+  @override
+  State<_SocialScreen> createState() => _SocialScreenState();
+}
+
+class _SocialScreenState extends State<_SocialScreen> {
+  final _followController = TextEditingController();
+  List<FollowedUser> _followResults = const [];
+  bool _isSearchingUsers = false;
+  int _followSearchSerial = 0;
+
+  @override
+  void dispose() {
+    _followController.dispose();
+    super.dispose();
+  }
+
+  void _followUser() {
+    if (_followResults.isNotEmpty) {
+      _followSelectedUser(_followResults.first);
+      return;
+    }
+    widget.controller.followUser(_followController.text);
+    _followController.clear();
+    setState(() {
+      _followResults = const [];
+      _isSearchingUsers = false;
+    });
+  }
+
+  Future<void> _searchFollowableUsers(String value) async {
+    _followSearchSerial += 1;
+    final serial = _followSearchSerial;
+    if (value.trim().length < 2) {
+      setState(() {
+        _followResults = const [];
+        _isSearchingUsers = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearchingUsers = true;
+    });
+    final results = await widget.controller.searchFollowableUsers(value);
+    if (!mounted || serial != _followSearchSerial) {
+      return;
+    }
+    setState(() {
+      _followResults = results;
+      _isSearchingUsers = false;
+    });
+  }
+
+  Future<void> _followSelectedUser(FollowedUser user) async {
+    await widget.controller.followExistingUser(user);
+    _followController.clear();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _followResults = const [];
+      _isSearchingUsers = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = AppPalette.of(context);
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: palette.surface,
+        scrolledUnderElevation: 0,
+        shape: Border(bottom: BorderSide(color: palette.border)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+          color: palette.text,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          _a(context, 'account.social'),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: palette.text,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+      body: ListenableBuilder(
+        listenable: widget.controller,
+        builder: (context, _) {
+          return ResponsiveContent(
+            maxWidth: 620,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            child: ListView(
+              children: [
+                _PanelTitle(
+                  icon: Icons.group_outlined,
+                  title: _a(context, 'account.social'),
+                  palette: palette,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _followController,
+                        decoration: InputDecoration(
+                          labelText: _a(context, 'account.followUser'),
+                          isDense: true,
+                        ),
+                        onChanged: _searchFollowableUsers,
+                        onSubmitted: (_) => _followUser(),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: palette.primary,
+                      ),
+                      onPressed: _followUser,
+                      icon: const Icon(Icons.person_add_alt_1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                _buildSearchResults(palette),
+                const SizedBox(height: 8),
+                Divider(color: palette.border),
+                const SizedBox(height: 16),
+                Text(
+                  _a(context, 'account.followingCount'),
+                  style: TextStyle(
+                    color: palette.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                if (widget.controller.following.isEmpty)
+                  Text(
+                    _a(context, 'account.noFollowed'),
+                    style: TextStyle(
+                      color: palette.textMuted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  )
+                else
+                  ...widget.controller.following.map(
+                    (fUser) => _SocialUserTile(user: fUser, palette: palette),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(AppPalette palette) {
+    if (_isSearchingUsers) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(child: CircularProgressIndicator(color: palette.primary)),
+      );
+    }
+
+    if (_followController.text.trim().length >= 2 && _followResults.isEmpty) {
+      return Text(
+        _a(context, 'account.noUserResults'),
+        style: TextStyle(color: palette.textMuted, fontWeight: FontWeight.w700),
+      );
+    }
+
+    if (_followResults.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          _a(context, 'account.searchResults'),
+          style: TextStyle(
+            color: palette.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 6),
+        ..._followResults.map(
+          (fUser) => _SocialUserTile(
+            user: fUser,
+            palette: palette,
+            trailing: Icon(Icons.person_add_alt_1, color: palette.primary),
+            onTap: () => _followSelectedUser(fUser),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SocialUserTile extends StatelessWidget {
+  const _SocialUserTile({
+    required this.user,
+    required this.palette,
+    this.trailing,
+    this.onTap,
+  });
+
+  final FollowedUser user;
+  final AppPalette palette;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: palette.primarySoft,
+        foregroundColor: palette.primary,
+        child: Text(user.displayName.substring(0, 1).toUpperCase()),
+      ),
+      title: Text(
+        user.displayName,
+        style: TextStyle(color: palette.text, fontWeight: FontWeight.w900),
+      ),
+      subtitle: Text(
+        user.email ?? user.handle,
+        style: TextStyle(color: palette.textMuted),
+      ),
+      trailing: trailing,
+      onTap: onTap,
     );
   }
 }

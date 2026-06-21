@@ -306,6 +306,50 @@ class AuthRepository {
     return results;
   }
 
+  Stream<List<FollowedUser>> watchFollowing(String userId) {
+    if (!_firebaseReady || userId == 'guest') {
+      return const Stream.empty();
+    }
+
+    return _db.child('users/$userId/following').onValue.map((event) {
+      final value = event.snapshot.value;
+      if (value is! Map) {
+        return const <FollowedUser>[];
+      }
+
+      final followedUsers = <FollowedUser>[];
+      for (final entry in Map<String, dynamic>.from(value).entries) {
+        final rawUser = entry.value;
+        if (rawUser is! Map) {
+          continue;
+        }
+
+        final user = Map<String, dynamic>.from(rawUser);
+        final displayName = (user['displayName'] as String?)?.trim();
+        if (displayName == null || displayName.isEmpty) {
+          continue;
+        }
+
+        followedUsers.add(
+          FollowedUser(
+            id: entry.key,
+            displayName: displayName,
+            handle: (user['handle'] as String?)?.trim().isNotEmpty == true
+                ? (user['handle'] as String).trim()
+                : '@${entry.key.toLowerCase()}',
+            email: (user['email'] as String?)?.trim(),
+          ),
+        );
+      }
+
+      followedUsers.sort(
+        (a, b) =>
+            a.displayName.toLowerCase().compareTo(b.displayName.toLowerCase()),
+      );
+      return followedUsers;
+    });
+  }
+
   Future<void> saveSession(
     String sessionId,
     Map<String, Object?> payload,

@@ -111,6 +111,7 @@ class GameStateController extends ChangeNotifier {
 
   final AuthRepository _authRepository = AuthRepository();
   StreamSubscription<Map<String, dynamic>?>? _liveMatchSubscription;
+  StreamSubscription<List<FollowedUser>>? _followingSubscription;
   bool _isApplyingRemoteState = false;
 
   Future<void> _initializeServices() async {
@@ -120,6 +121,7 @@ class GameStateController extends ChangeNotifier {
     if (savedSession != null) {
       _currentUser = savedSession;
       _accountMessage = 'Signed in as ${_currentUser.displayName}.';
+      _watchFollowingForCurrentUser();
       await _activateRealtimeMatchForCurrentUser();
       if (!isLiveMatchActive) {
         _ensureCurrentUserParticipant();
@@ -427,6 +429,7 @@ class GameStateController extends ChangeNotifier {
       if (result.isSuccess) {
         _currentUser = result.session!;
         _accountMessage = 'Signed in as ${_currentUser.displayName}.';
+        _watchFollowingForCurrentUser();
         await _refreshUserGroups();
         await _activateRealtimeMatchForCurrentUser();
         if (!isLiveMatchActive) {
@@ -446,6 +449,8 @@ class GameStateController extends ChangeNotifier {
   Future<void> signOut() async {
     await leaveLiveMatch();
     await _authRepository.signOut();
+    await _followingSubscription?.cancel();
+    _followingSubscription = null;
     _players.clear();
     _profiles.clear();
     _following.clear();
@@ -463,6 +468,30 @@ class GameStateController extends ChangeNotifier {
     );
     _accountMessage = 'Signed out. Guest mode is active.';
     notifyListeners();
+  }
+
+  void _watchFollowingForCurrentUser() {
+    _followingSubscription?.cancel();
+    _following.clear();
+    if (_currentUser.isGuest) {
+      notifyListeners();
+      return;
+    }
+
+    _followingSubscription = _authRepository
+        .watchFollowing(_currentUser.id)
+        .listen(
+          (users) {
+            _following
+              ..clear()
+              ..addAll(users);
+            notifyListeners();
+          },
+          onError: (Object error) {
+            _accountMessage = 'Could not load followed users: $error';
+            notifyListeners();
+          },
+        );
   }
 
   void updateUserProfile(
@@ -1994,6 +2023,7 @@ class GameStateController extends ChangeNotifier {
   @override
   void dispose() {
     _liveMatchSubscription?.cancel();
+    _followingSubscription?.cancel();
     super.dispose();
   }
 
